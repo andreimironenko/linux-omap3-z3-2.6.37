@@ -36,12 +36,30 @@
 #define OMAP4_MMC5_BASE		0x480d5000
 #define OMAP4_MMC_REG_OFFSET	0x100
 
-#define TI81XX_NR_MMC		1
+#ifdef CONFIG_TI8148EVM_WL12XX
+#define TI816X_NR_MMC		1
+#else
+#define TI81XX_NR_MMC          1
+#endif
 #define TI81XX_HSMMC_SIZE	0x10000
 #define TI816X_MMC1_BASE	0x48060100 /* TI816X MMC/SD config base */
 #define TI816X_MMC1_HL_BASE	0x48060000 /* TI816X HL configuration*/
-#define TI814X_MMC1_BASE	0x481D8100 /* TI814X MMC/SD config base */
-#define TI814X_MMC1_HL_BASE	0x481D8000 /* TI814X HL configuration*/
+#ifdef CONFIG_TI8148EVM_WL12XX
+#define TI814X_NR_MMC		2
+#define TI814X_MMC1_BASE	0x48060100 /* TI814X MMC1/SD1 config base */
+#define TI814X_MMC1_HL_BASE	0x48060000 /* TI814X HL configuration*/
+#define TI814X_MMC2_BASE	0x481D8100 /* TI814X MMC2/SD2 config base */
+#define TI814X_MMC2_HL_BASE	0x481D8000 /* TI814X HL configuration*/
+
+#ifdef CONFIG_ARCH_TI814X
+#define TI81XX_NR_MMC		TI814X_NR_MMC
+#else /* TI816X */
+#define TI81XX_NR_MMC		TI816X_NR_MMC
+#endif
+#else
+#define TI814X_MMC1_BASE       0x481D8100 /* TI814X MMC/SD config base */
+#define TI814X_MMC1_HL_BASE    0x481D8000 /* TI814X HL configuration*/
+#endif
 
 #define HSMMC5			(1 << 4)
 #define HSMMC4			(1 << 3)

@@ -331,6 +331,17 @@ config MACH_DM385EVM
 	default y
 	depends on ARCH_TI814X
 
+config TI8148EVM_WL12XX
+       bool "TI814x wl12xx daughter board"
+       depends on MACH_TI8148EVM
+       select WL12XX_PLATFORM_DATA
+       help
+         The COM6/COM7 cards are wireless connectivity cards based on Murata's
+         type TN module and Texas Insturments wl12xx chipset.
+         Say Y if you want to use a wl12xx expansion card connected to the
+         TI8148 EVM.
+
+
 config MACH_TI8168EVM
 	bool "TI8168 Evaluation Module"
 	default y

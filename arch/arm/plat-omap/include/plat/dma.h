@@ -185,8 +185,13 @@
 #define OMAP24XX_DMA_SPI1_TX3		52	/* E_DMA_52 */
 #define OMAP24XX_DMA_SPI1_RX3		53	/* E_DMA_53 */
 
-#define OMAP24XX_DMA_MMC1_RX		3
-#define OMAP24XX_DMA_MMC1_TX		2
+#ifdef CONFIG_TI8148EVM_WL12XX
+#define OMAP24XX_DMA_MMC1_TX		24
+#define OMAP24XX_DMA_MMC1_RX		25
+#else
+#define OMAP24XX_DMA_MMC1_RX           3
+#define OMAP24XX_DMA_MMC1_TX           2
+#endif
 #endif
 
 #else
@@ -215,8 +220,13 @@
 #define OMAP24XX_DMA_SPI2_TX1		45	/* S_DMA_44 */
 #define OMAP24XX_DMA_SPI2_RX1		46	/* S_DMA_45 */
 #endif
+#ifdef CONFIG_TI8148EVM_WL12XX
+#define OMAP24XX_DMA_MMC2_TX		2
+#define OMAP24XX_DMA_MMC2_RX		3
+#else
 #define OMAP24XX_DMA_MMC2_TX		47	/* S_DMA_46 */
 #define OMAP24XX_DMA_MMC2_RX		48	/* S_DMA_47 */
+#endif
 #define OMAP24XX_DMA_UART1_TX		49	/* S_DMA_48 */
 #define OMAP24XX_DMA_UART1_RX		50	/* S_DMA_49 */
 #define OMAP24XX_DMA_UART2_TX		51	/* S_DMA_50 */
