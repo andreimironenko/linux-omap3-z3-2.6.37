@@ -87,10 +87,17 @@ static struct omap_mux __initdata ti814x_muxmodes[] = {
 			"xref_clk2", "mcasp0_axr_9_mux1", "mcasp2_ahclkx",
 			"mcasp5_ahclkx", "atlclkout3", "xdma_evt_2_mux1",
 			"timer3_mux1", "gpio0_9"),	/* Not for DM385 */
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	_TI814X_MUXENTRY(XREF_CLK2, 0,
 			"xref_clk2", "mcasp0_axr_9_mux1", "mcasp2_ahclkx",
 			"sata_act1_led_mux0", "atlclkout3", "xdma_evt_2_mux1",
 			"timer3_mux1", "gpio0_9"),	/* DM385 only */
+#else
+	_TI814X_MUXENTRY(XREF_CLK2, 0,
+			"xref_clk2dm385", "mcasp0_axr_9_mux1", "mcasp2_ahclkx",
+			"sata_act1_led_mux0", "atlclkout3", "xdma_evt_2_mux1",
+			"timer3_mux1", "gpio0_9"),	/* DM385 only */
+#endif
 	_TI814X_MUXENTRY(MCASP0_ACLKX, 0,
 			"mcasp0_aclkx", NULL, NULL, NULL,
 			NULL, NULL, NULL, NULL),

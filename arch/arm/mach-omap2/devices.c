@@ -1312,6 +1312,36 @@ static struct platform_device ti816x_emac1_device = {
 	.resource	=	ti816x_emac1_resources,
 };
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+void ti816x_emac_mux(void)
+{
+        /* Tri-state outputs for Z3 APP-22 DM814x VIP1 pins*/
+	omap_mux_init_signal("gmii1_rxclk", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd0", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd1", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd2", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd3", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd4", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd5", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd6", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxd7", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxdv", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_gtxclk", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd0", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd1", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd2", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd3", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd4", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd5", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd6", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txd7", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txen", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_txclk", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_col", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_crs", OMAP_MUX_MODE3);
+	omap_mux_init_signal("gmii1_rxer", OMAP_MUX_MODE3);
+}
+#else
 static struct platform_device ti816x_emac2_device = {
 	.name	=	"davinci_emac",
 	.id	=	1,
@@ -1346,6 +1376,7 @@ void ti816x_emac_mux(void)
 	omap_mux_init_signal("gmii1_crs", OMAP_MUX_MODE1);
 	omap_mux_init_signal("gmii1_rxer", OMAP_MUX_MODE1);
 }
+#endif
 
 
 
@@ -1377,6 +1408,7 @@ void ti816x_ethernet_init(void)
 	clk_add_alias(NULL, dev_name(&ti816x_mdio_device.dev),
 			NULL, &ti816x_emac1_device.dev);
 
+#if !machine_is_z3_816x_mod() || !machine_is_z3_814x_mod()
 	mac_lo = omap_ctrl_readl(TI81XX_CONTROL_MAC_ID1_LO);
 	mac_hi = omap_ctrl_readl(TI81XX_CONTROL_MAC_ID1_HI);
 	ti816x_emac2_pdata.mac_addr[0] = mac_hi & 0xFF;
@@ -1396,7 +1428,7 @@ void ti816x_ethernet_init(void)
 	ti816x_emac2_pdata.interrupt_disable = NULL;
 	ti816x_emac2_device.dev.platform_data = &ti816x_emac2_pdata;
 	platform_device_register(&ti816x_emac2_device);
-
+#endif
 	ti816x_emac_mux();
 }
 #else
@@ -1423,23 +1455,43 @@ static inline void ti816x_ethernet_init(void) {}
 static struct ti816x_sr_sdata sr_sensor_data[] = {
 	{
 		.efuse_offs	= TI816X_SR_HVT_CNTRL_OFFSET,
+#if machine_is_z3_816x_mod()
+		.e2v_gain	= 0x3,
+		.err_weight	= 0x4,
+		.err_minlimit	= 0xD5,
+		.err_maxlimit	= 0x2,
+		.senn_mod	= 0x1,
+		.senp_mod	= 0x1,
+#else
 		.e2v_gain	= TI816X_SR_HVT_ERR2VOLT_GAIN,
 		.err_minlimit	= TI816X_SR_HVT_ERR_MIN_LIMIT,
 		.err_maxlimit	= 0x2,
 		.err_weight	= 0x4,
 		.senn_mod	= 0x1,
 		.senp_mod	= 0x1,
+#endif
 	},
 	{
 		.efuse_offs	= TI816X_SR_SVT_CNTRL_OFFSET,
+#if machine_is_z3_816x_mod()
+		.e2v_gain	= 0x5,
+		.err_weight	= 0x4,
+		.err_minlimit	= 0xE6,
+		.err_maxlimit	= 0x2,
+		.senn_mod	= 0x1,
+		.senp_mod	= 0x1,
+#else
 		.e2v_gain	= TI816X_SR_SVT_ERR2VOLT_GAIN,
 		.err_minlimit	= TI816X_SR_SVT_ERR_MIN_LIMIT,
 		.err_maxlimit	= 0x2,
 		.err_weight	= 0x4,
 		.senn_mod	= 0x1,
 		.senp_mod	= 0x1,
+#endif
 	},
 };
+
+
 
 static struct ti816x_sr_platform_data ti816x_sr_pdata = {
 	.vd_name		= "vdd_avs",
@@ -1447,7 +1499,11 @@ static struct ti816x_sr_platform_data ti816x_sr_pdata = {
 	.irq_delay		= 2000,
 	.no_of_vds		= 1,
 	.no_of_sens		= ARRAY_SIZE(sr_sensor_data),
+#if machine_is_z3_816x_mod()
+    .vstep_size_uv          = 49000,
+#else
 	.vstep_size_uv		= 15000,
+#endif
 	.enable_on_init		= true,
 	.sr_sdata		= sr_sensor_data,
 };
@@ -1916,11 +1972,21 @@ static void __init ti81xx_video_mux(void)
 		omap_mux_init_signal("hdmi_hpd_mux0",
 			TI814X_INPUT_EN);
 		/*I2C2 configuration functon 6*/
+#if machine_is_z3_814x_mod()
+		omap_mux_init_signal("i2c2_scl_mux2",
+			TI814X_PULL_UP | TI814X_INPUT_EN);
+		omap_mux_init_signal("i2c2_sda_mux2",
+			TI814X_PULL_UP | TI814X_INPUT_EN);
+                /* Disable i2c2 mux0 */
+                omap_mux_init_signal("gpio1_3", 0);
+                omap_mux_init_signal("gpio1_2", 0);
+
+#else
 		omap_mux_init_signal("i2c2_scl_mux0",
 			TI814X_PULL_UP | TI814X_INPUT_EN);
 		omap_mux_init_signal("i2c2_sda_mux0",
 			TI814X_PULL_UP | TI814X_INPUT_EN);
-
+#endif
 		/*VIN0 configuraiton*/
 		omap_mux_init_signal("vin0_clk1",
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
@@ -2035,6 +2101,7 @@ static void __init ti81xx_video_mux(void)
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
 		omap_mux_init_signal("vin1a_d15",
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
+#if !machine_is_z3_814x_mod()
 		omap_mux_init_signal("vin1a_d16",
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
 		omap_mux_init_signal("vin1a_d17",
@@ -2051,6 +2118,7 @@ static void __init ti81xx_video_mux(void)
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
 		omap_mux_init_signal("vin1a_d23",
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
+#endif
 		omap_mux_init_signal("vin1a_d7",
 				TI814X_PULL_DIS | TI814X_INPUT_EN);
 		/*FIXME move to right place
@@ -2147,13 +2215,22 @@ struct cpsw_slave_data cpsw_slaves[] = {
 	{
 		.slave_reg_ofs  = 0x50,
 		.sliver_reg_ofs = 0x700,
+#if machine_is_z3_814x_mod()
+		.phy_id		= "0:01",
+#else
 		.phy_id		= "0:00",
+#endif
 		.dual_emac_reserved_vlan = CPSW_PORT_VLAN_SLAVE_0,
 	},
 	{
 		.slave_reg_ofs  = 0x90,
 		.sliver_reg_ofs = 0x740,
+
+#if		machine_is_z3_814x_mod()
+		.phy_id		= "0:02",
+#else
 		.phy_id		= "0:01",
+#endif
 		.dual_emac_reserved_vlan = CPSW_PORT_VLAN_SLAVE_1,
 	},
 };
@@ -2300,8 +2377,13 @@ void ti814x_cpsw_init(void)
 #endif
 	if (cpu_is_dm385() || (cpu_is_ti814x() &&
 			      omap_rev() > TI8148_REV_ES1_0)) {
+#if machine_is_z3_814x_mod()
+		cpsw_slaves[0].phy_id = "0:01";
+		cpsw_slaves[1].phy_id = "0:02";
+#else
 		cpsw_slaves[0].phy_id = "0:00";
 		cpsw_slaves[1].phy_id = "0:01";
+#endif
 	} else
 		cpsw_slaves[0].phy_id = "0:01";
 
@@ -2539,6 +2621,8 @@ static struct resource dm385_mcasp_resource[] = {
 		.flags = IORESOURCE_DMA,
 	},
 };
+#endif
+
 
 static struct resource ti81xx_mcasp_resource[] = {
 	{
@@ -2561,12 +2645,107 @@ static struct resource ti81xx_mcasp_resource[] = {
 	},
 };
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
+static struct resource ti81xx_mcasp0_resource[] = {
+	{
+		.name = "mcasp",
+		.start = TI81XX_ASP0_BASE,
+		.end = TI81XX_ASP0_BASE + (SZ_1K * 12) - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	/* TX event */
+	{
+		.start = TI81XX_DMA_MCASP0_AXEVT,
+		.end = TI81XX_DMA_MCASP0_AXEVT,
+		.flags = IORESOURCE_DMA,
+	},
+	/* RX event */
+	{
+		.start = TI81XX_DMA_MCASP0_AREVT,
+		.end = TI81XX_DMA_MCASP0_AREVT,
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static struct resource ti81xx_mcasp1_resource[] = {
+	{
+		.name = "mcasp",
+		.start = TI81XX_ASP1_BASE,
+		.end = TI81XX_ASP1_BASE + (SZ_1K * 12) - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	/* TX event */
+	{
+		.start = TI81XX_DMA_MCASP1_AXEVT,
+		.end = TI81XX_DMA_MCASP1_AXEVT,
+		.flags = IORESOURCE_DMA,
+	},
+	/* RX event */
+	{
+		.start = TI81XX_DMA_MCASP1_AREVT,
+		.end = TI81XX_DMA_MCASP1_AREVT,
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static struct resource ti81xx_mcasp2_resource[] = {
+	{
+		.name = "mcasp",
+		.start = TI81XX_ASP2_BASE,
+		.end = TI81XX_ASP2_BASE + (SZ_1K * 12) - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	/* TX event */
+	{
+		.start = TI81XX_DMA_MCASP2_AXEVT,
+		.end = TI81XX_DMA_MCASP2_AXEVT,
+		.flags = IORESOURCE_DMA,
+	},
+	/* RX event */
+	{
+		.start = TI81XX_DMA_MCASP2_AREVT,
+		.end = TI81XX_DMA_MCASP2_AREVT,
+		.flags = IORESOURCE_DMA,
+	},
+};
+#endif // machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
+#if !machine_is_z3_816x_mod() || !machine_is_z3_814x_mod()
 static struct platform_device ti81xx_mcasp_device = {
 	.name = "davinci-mcasp",
 };
+#else
+static struct platform_device ti81xx_mcasp0_device = {
+	.name = "davinci-mcasp",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(ti81xx_mcasp0_resource),
+	.resource = ti81xx_mcasp0_resource,
+};
+#endif
+
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
+static struct platform_device ti81xx_mcasp1_device = {
+	.name = "davinci-mcasp",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(ti81xx_mcasp1_resource),
+	.resource = ti81xx_mcasp1_resource,
+};
+
+static struct platform_device ti81xx_mcasp2_device = {
+	.name = "davinci-mcasp",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(ti81xx_mcasp2_resource),
+	.resource = ti81xx_mcasp2_resource,
+};
+#endif
 
 void __init ti81xx_register_mcasp(int id, struct snd_platform_data *pdata)
 {
+#if !machine_is_z3_816x_mod() || !machine_is_z3_814x_mod()
+
 	if (machine_is_ti8168evm() || machine_is_ti8148evm()) {
 		ti81xx_mcasp_device.id = 2;
 		ti81xx_mcasp_device.resource = ti81xx_mcasp_resource;
@@ -2582,8 +2761,29 @@ void __init ti81xx_register_mcasp(int id, struct snd_platform_data *pdata)
 
 	ti81xx_mcasp_device.dev.platform_data = pdata;
 	platform_device_register(&ti81xx_mcasp_device);
+	
+#else
+switch ( id )
+        {
+        case 0:
+                ti81xx_mcasp0_device.dev.platform_data = pdata;
+                platform_device_register(&ti81xx_mcasp0_device);
+                break;
+        case 1:
+                ti81xx_mcasp1_device.dev.platform_data = pdata;
+                platform_device_register(&ti81xx_mcasp1_device);
+                break;
+        case 2:
+                ti81xx_mcasp2_device.dev.platform_data = pdata;
+                platform_device_register(&ti81xx_mcasp2_device);
+                break;
+        default:
+                break;
+        }
+             
+#endif // machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 }
-#endif
+
 
 #if defined(CONFIG_ARCH_TI81XX) && defined(CONFIG_PCI)
 static struct ti81xx_pcie_data ti81xx_pcie_data = {

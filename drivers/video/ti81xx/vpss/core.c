@@ -37,8 +37,10 @@
 
 #include <linux/vmalloc.h>
 
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#include <mach/board-ti814x.h>
+#endif
 #include "core.h"
-
 #define VPS_DRIVER_NAME  "vpss"
 
 
@@ -154,6 +156,7 @@ static int __init vps_init(void)
 	
 	VPSSDBG("core init\n");
 
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) 
         /* This mux is for configuring the pixel clock to Venc through HDMI or PLL*/
         reg_base = (u32)ioremap(TI814x_HDMI_MUX_ADDR, 0x10);
         reg_value = __raw_readl(reg_base);
@@ -161,7 +164,7 @@ static int __init vps_init(void)
 
         __raw_writel(reg_value, reg_base);
         iounmap((u32 *)TI814x_HDMI_MUX_ADDR);
-
+#endif
 	if (platform_driver_probe(&vps_driver, vps_probe)) {
 		VPSSERR("failed to register ti81xx-vpss driver\n");
 		return -ENODEV;

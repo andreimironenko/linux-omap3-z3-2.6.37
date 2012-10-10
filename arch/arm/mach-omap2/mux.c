@@ -187,7 +187,7 @@ static int __init _omap_mux_get_by_name(struct omap_mux_partition *partition,
 		m0_entry = mux->muxnames[0];
 
 		/* First check for full name in mode0.muxmode format */
-		if (mode0_len && strncmp(muxname, m0_entry, mode0_len))
+		if (mode0_len && (strlen(m0_entry) != mode0_len || strncmp(muxname, m0_entry, mode0_len)))
 			continue;
 
 		/* Then check for muxmode only */
@@ -560,7 +560,7 @@ static int omap_mux_dbg_signal_show(struct seq_file *s, void *unused)
 	return 0;
 }
 
-#define OMAP_MUX_MAX_ARG_CHAR  7
+#define OMAP_MUX_MAX_ARG_CHAR  10
 
 static ssize_t omap_mux_dbg_signal_write(struct file *file,
 					 const char __user *user_buf,
@@ -585,9 +585,22 @@ static ssize_t omap_mux_dbg_signal_write(struct file *file,
 	ret = strict_strtoul(buf, 0x10, &val);
 	if (ret < 0)
 		return ret;
+		
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 
-	if (val > 0xffff)
+if (val > 0xffff)
 		return -EINVAL;
+#else
+
+if (cpu_is_ti814x()) {
+                if ((val&0xfffc0000) != 0 )
+                        return -EINVAL;
+        } else {
+                if (val > 0xffff)
+                        return -EINVAL;
+        }
+#endif
+
 
 	seqf = file->private_data;
 	m = seqf->private;

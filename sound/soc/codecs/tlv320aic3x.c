@@ -50,6 +50,9 @@
 #include <sound/initval.h>
 #include <sound/tlv.h>
 #include <sound/tlv320aic3x.h>
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#include <mach/z3_fpga.h>
+#endif
 
 #include "tlv320aic3x.h"
 
@@ -816,6 +819,23 @@ static int aic3x_hw_params(struct snd_pcm_substream *substream,
 	u16 d, pll_d = 1;
 	u8 reg;
 	int clk;
+	
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+ int ret;
+
+        if ( z3_fpga_get_aic_ext_master( ) ) {
+                bypass_pll = 1;
+
+                ret = z3_fpga_set_aic_ext_master_sample_rate(params_rate(params));
+                if ( ret != 0 ) {
+                        printk(KERN_ERR "%s(): unable to setup fpga master at rate %u\n", __func__, params_rate(params));
+                        return ret;
+                }
+        }
+
+        /* enable access to bus */
+        z3_fpga_set_aic_disable( 0 );
+#endif
 
 	/* select data word length */
 	data = snd_soc_read(codec, AIC3X_ASD_INTF_CTRLB) & (~(0x3 << 4));
@@ -1005,6 +1025,14 @@ static int aic3x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	case SND_SOC_DAIFMT_CBS_CFS:
 		aic3x->master = 0;
 		break;
+	case SND_SOC_DAIFMT_CBS_CFM:
+		aic3x->master = 0;
+		iface_areg |= WORD_CLK_MASTER;
+		break;
+	case SND_SOC_DAIFMT_CBM_CFS:
+		aic3x->master = 1;
+		iface_areg |= BIT_CLK_MASTER;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1039,6 +1067,23 @@ static int aic3x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 
 	return 0;
 }
+
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+static void aic3x_pcm_shutdown(struct snd_pcm_substream *substream,
+                               struct snd_soc_dai *dai)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct aic3x_priv *aic3x = snd_soc_codec_get_drvdata(codec);
+
+        u8 iface_areg;
+
+        /* Tri-state bit clock and frame sync */
+	iface_areg = snd_soc_read(codec, AIC3X_ASD_INTF_CTRLA) & 0x3f;
+        aic3x->master = 0;
+	snd_soc_write(codec, AIC3X_ASD_INTF_CTRLA, iface_areg);
+}
+#endif
 
 static int aic3x_init_3007(struct snd_soc_codec *codec)
 {
@@ -1232,6 +1277,9 @@ static struct snd_soc_dai_ops aic3x_dai_ops = {
 	.digital_mute	= aic3x_mute,
 	.set_sysclk	= aic3x_set_dai_sysclk,
 	.set_fmt	= aic3x_set_dai_fmt,
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+    .shutdown       = aic3x_pcm_shutdown,
+#endif
 };
 
 static struct snd_soc_dai_driver aic3x_dai = {

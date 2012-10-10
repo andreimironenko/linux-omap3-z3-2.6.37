@@ -33,6 +33,8 @@ static unsigned int omap_revision;
 
 u32 omap3_features;
 
+u32 ti81xx_features;
+
 unsigned int omap_rev(void)
 {
 	return omap_revision;
@@ -351,6 +353,19 @@ static void __init omap4_check_revision(void)
 			omap_rev() >> 16, ((omap_rev() >> 12) & 0xf) + 1);
 }
 
+#define TI81XX_CHECK_FEATURE(status,feat)				\
+	if (((status & TI81XX_ ##feat## _MASK) 				\
+		>> TI81XX_ ##feat## _SHIFT) != FEAT_ ##feat## _NONE) { 	\
+		ti81xx_features |= TI81XX_HAS_ ##feat;			\
+	}
+
+static void __init ti81xx_check_features(void)
+{
+	u32 status;
+
+	ti81xx_features = omap_ctrl_readl(TI81XX_CONTROL_DEVICE_CAP);
+}
+
 void __init ti81xx_check_revision(void)
 {
 	u32 idcode;
@@ -390,8 +405,12 @@ void __init ti81xx_check_revision(void)
 			strcpy(cpu_rev, "2.0");
 		}
 
+                if ( ti81xx_has_tppss() ) {
 		omap3_features |= OMAP3_HAS_DSP;
-		pr_info("OMAP chip is TI8168 %s\n", cpu_rev);
+                        pr_info("OMAP chip is TI8169 %s\n", cpu_rev);
+                } else {
+                        pr_info("OMAP chip is TI8168 %s\n", cpu_rev);
+                }
 		return;
 	} else if ((partnum == 0xb8f2)) {
 		omap_chip.oc |= CHIP_IS_TI814X;
@@ -555,6 +574,8 @@ void __init omap2_check_revision(void)
 		omap4_check_revision();
 		return;
 	} else if (cpu_is_ti81xx()) {
+                /* Need to check features first, it affects revision printout */
+                ti81xx_check_features();
 		ti81xx_check_revision();
 		return;
 	} else {

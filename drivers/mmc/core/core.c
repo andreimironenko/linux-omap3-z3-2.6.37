@@ -296,9 +296,8 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 		unsigned int timeout_us, limit_us;
 
 		timeout_us = data->timeout_ns / 1000;
-		if (card->host->ios.clock)
-			timeout_us += data->timeout_clks * 1000 /
-				(card->host->ios.clock / 1000);
+		timeout_us += data->timeout_clks * 1000 /
+			(card->host->ios.clock / 1000);
 
 		if (data->flags & MMC_DATA_WRITE)
 			/*
@@ -1448,12 +1447,8 @@ void mmc_rescan(struct work_struct *work)
 
 	mmc_bus_get(host);
 
-	/*
-	 * if there is a _removable_ card registered, check whether it is
-	 * still present
-	 */
-	if (host->bus_ops && host->bus_ops->detect && !host->bus_dead
-	    && mmc_card_is_removable(host))
+	/* if there is a card registered, check whether it is still present */
+	if ((host->bus_ops != NULL) && host->bus_ops->detect && !host->bus_dead)
 		host->bus_ops->detect(host);
 
 	mmc_bus_put(host);

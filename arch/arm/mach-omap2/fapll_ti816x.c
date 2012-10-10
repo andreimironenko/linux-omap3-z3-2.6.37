@@ -22,6 +22,10 @@
 #include <linux/err.h>
 #include <linux/list.h>
 
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#include <linux/time.h>
+#endif
+
 #include <asm/div64.h>
 #include <plat/clock.h>
 
@@ -38,7 +42,12 @@
 #define FAPLL_FVCO_BAND_MAX		1850000000
 
 #define MAX_FAPLL_WAIT_TRIES		1000
+
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 #define	ROUNDING_DIVIDER		1000
+#else
+#undef ROUNDING_DIVIDER		1000
+#endif
 
 #define TI816X_FAPLL_FREQ_MIN_VALUE	8
 #define TI816X_FAPLL_FREQ_MAX_VALUE	15
@@ -336,24 +345,32 @@ static int _fapll_get_rounded_vals(struct clk *clk, unsigned long target_rate)
 {
 	int i, m;
 	struct fapll_data *fd;
-	unsigned long freq_val;
+	unsigned long long freq_val;
+        unsigned long long temp64;
 	unsigned int freq, reminder, quotient;
 
 	fd = clk->fapll_data;
 	if (!fd)
 		return -EINVAL;
 
-	freq_val = ((clk->parent->rate/ROUNDING_DIVIDER) * fd->mult_n *
-				TI816X_FAPLL_K)/fd->pre_div_p;
-	target_rate = target_rate/ROUNDING_DIVIDER;
+	freq_val = clk->parent->rate;
+        freq_val *= fd->mult_n;
+        freq_val *= TI816X_FAPLL_K;
 
-	reminder = freq_val%target_rate;
-	quotient = freq_val/target_rate;
+        do_div(freq_val, fd->pre_div_p);
+
+        temp64 = freq_val;
+	reminder = do_div(temp64, target_rate);
+	quotient = (unsigned int)temp64;
 
 	if (clk->freq_flag != 1) {
 		fd->last_rounded_freq_int = 0;
 		fd->last_rounded_freq_frac = 0;
-		fd->last_rounded_m = freq_val/(target_rate * TI816X_FAPLL_K);
+                temp64 = freq_val;
+                do_div( temp64, target_rate );
+                do_div( temp64, TI816X_FAPLL_K );
+
+		fd->last_rounded_m = (unsigned int) temp64;
 		if (fd->last_rounded_m > fd->max_divider)
 			return -EINVAL;
 		return 0;
@@ -381,11 +398,17 @@ static int _fapll_get_rounded_vals(struct clk *clk, unsigned long target_rate)
 				(freq <= TI816X_FAPLL_FREQ_MAX_VALUE)) {
 				fd->last_rounded_m = i;
 				fd->last_rounded_freq_int = freq;
-				fd->last_rounded_freq_frac =
-					((((quotient%i) << 16)/i +
-					((reminder/ROUNDING_DIVIDER) << 16) /
-					(i*(target_rate/ROUNDING_DIVIDER)))<<8);
-					break;
+
+                                temp64 = (quotient%i);
+                                temp64 *= target_rate;
+                                temp64 += (reminder);
+                                temp64 <<= 24;
+                                do_div(temp64, i);
+                                do_div(temp64, target_rate);
+
+				fd->last_rounded_freq_frac = (unsigned int) temp64;
+                                
+                                break;
 			}
 		}
 		if (i > fd->max_divider)
@@ -508,23 +531,45 @@ static int ti816x_fapll_program(struct clk *clk, u16 n, u8 p, u8 m,
 {
 	struct fapll_data *fd = clk->fapll_data;
 	u32 v;
+        unsigned long flags;
 
-	/* Put FAPLL in bypass mode */
-	_ti816x_put_fapll_bypass(clk);
+        u32 control_value;
+        u32 post_div_value;
+
+        u32 bypass=0;
+
+        local_irq_save(flags);
 
 	/* Set FAPLL multiplier, divider */
-	v = __raw_readl(fd->control_reg);
+	control_value = v = __raw_readl(fd->control_reg);
 	v &= ~(fd->mult_mask | fd->div_mask);
 	v |= n << __ffs(fd->mult_mask);
 	v |= p << __ffs(fd->div_mask);
-	__raw_writel(v, fd->control_reg);
+
+        if ( control_value != v ) {
+                bypass = 1;
+        }
+        control_value = v;
 
 	/* set FAPLL post divider */
-	v = __raw_readl(clk->post_div_reg);
+	post_div_value = v = __raw_readl(clk->post_div_reg);
 	v &= ~(fd->post_div_mask);
 	v |= m << __ffs(fd->post_div_mask);
+
+        if ( post_div_value != v ) {
+                bypass = 1;
+        }
+
 	v |= TI816X_LOAD_DIV1_VALUE << __ffs(fd->lddiv1_mask);
-	__raw_writel(v, clk->post_div_reg);
+        post_div_value = v;
+        
+        if ( bypass ) {
+                /* Put FAPLL in bypass mode */
+                _ti816x_put_fapll_bypass(clk);
+
+                __raw_writel(control_value, fd->control_reg);
+                __raw_writel(post_div_value, clk->post_div_reg);
+        }
 
 	/* set FAPLL fractional and integer part of freq */
 	if (clk->freq_flag == 1) {
@@ -542,7 +587,11 @@ static int ti816x_fapll_program(struct clk *clk, u16 n, u8 p, u8 m,
 	/* REVISIT: Set ramp-up delay? */
 
 	/* Release FAPLL from bypass mode */
-	_ti816x_rel_fapll_bypass(clk);
+        if ( bypass ) {
+                _ti816x_rel_fapll_bypass(clk);
+        }
+
+        local_irq_restore(flags);
 
 	_ti816x_fapll_lock(clk);
 
@@ -743,7 +792,7 @@ static unsigned long _fapll_syn_compute_new_rate(unsigned long ref_rate,
 
 	if (f_int > 0) {
 		num = (unsigned long long) ((TI816X_FAPLL_K * n) << 16);
-		den = (unsigned long long) (((f_int << 24) + f_frac)>>8) * m;
+		den = (unsigned long long) ((((f_int << 24) + f_frac)) * m)>>8;
 	} else {
 		num = (unsigned long long) n;
 		den = (unsigned long long) m;

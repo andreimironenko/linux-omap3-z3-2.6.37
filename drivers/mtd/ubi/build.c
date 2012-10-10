@@ -673,7 +673,11 @@ static int io_init(struct ubi_device *ubi)
 	}
 
 	ubi->min_io_size = ubi->mtd->writesize;
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	ubi->hdrs_min_io_size = ubi->mtd->writesize >> ubi->mtd->subpage_sft;
+#else
+    ubi->hdrs_min_io_size = ubi->mtd->writesize;
+#endif
 
 	/*
 	 * Make sure minimal I/O unit is power of 2. Note, there is no

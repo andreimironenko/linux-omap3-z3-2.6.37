@@ -47,6 +47,10 @@ obj-$(CONFIG_VIDEO_ADV7170) += adv7170.o
 obj-$(CONFIG_VIDEO_ADV7175) += adv7175.o
 obj-$(CONFIG_VIDEO_ADV7180) += adv7180.o
 obj-$(CONFIG_VIDEO_ADV7343) += adv7343.o
+obj-$(CONFIG_VIDEO_ADV9880) += adv9880.o
+obj-$(CONFIG_VIDEO_ADV7611) += adv7611.o
+obj-$(CONFIG_VIDEO_GV7601) += gv7601.o
+obj-$(CONFIG_VIDEO_GV7600) += gv7600.o
 obj-$(CONFIG_VIDEO_VPX3220) += vpx3220.o
 obj-$(CONFIG_VIDEO_BT819) += bt819.o
 obj-$(CONFIG_VIDEO_BT856) += bt856.o
@@ -185,7 +189,12 @@ obj-y	+= davinci/
 
 obj-$(CONFIG_ARCH_OMAP)	+= omap/
 obj-$(CONFIG_TI_TILER)  += tiler/
+
+# Z3
+obj-$(CONFIG_VIDEO_Z3_NETRA)            += netra/
+
 obj-$(CONFIG_VIDEO_TI81XX_VIDOUT)	+= ti81xx/
+
 #obj-$(CONFIG_TI81XX_HDVPSS_CAPTURE)	+= ti81xx/
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core

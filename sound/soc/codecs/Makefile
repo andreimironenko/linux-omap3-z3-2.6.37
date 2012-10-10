@@ -5,6 +5,7 @@ snd-soc-ad193x-objs := ad193x.o
 snd-soc-ad1980-objs := ad1980.o
 snd-soc-ad73311-objs := ad73311.o
 snd-soc-ads117x-objs := ads117x.o
+snd-soc-adv7611-objs := adv7611.o
 snd-soc-ak4104-objs := ak4104.o
 snd-soc-ak4535-objs := ak4535.o
 snd-soc-ak4642-objs := ak4642.o
@@ -66,6 +67,8 @@ snd-soc-wm9713-objs := wm9713.o
 snd-soc-wm-hubs-objs := wm_hubs.o
 snd-soc-jz4740-codec-objs := jz4740.o
 snd-soc-ti81xx-hdmi-objs := ti81xx_hdmi.o
+snd-soc-gv7601-objs := gv7601.o
+snd-soc-gv7600-objs := gv7600.o
 
 # Amp
 snd-soc-max9877-objs := max9877.o
@@ -84,6 +87,7 @@ obj-$(CONFIG_SND_SOC_AK4104)	+= snd-soc-ak4104.o
 obj-$(CONFIG_SND_SOC_AK4535)	+= snd-soc-ak4535.o
 obj-$(CONFIG_SND_SOC_AK4642)	+= snd-soc-ak4642.o
 obj-$(CONFIG_SND_SOC_AK4671)	+= snd-soc-ak4671.o
+obj-$(CONFIG_SND_SOC_ADV7611)   += snd-soc-adv7611.o
 obj-$(CONFIG_SND_SOC_CQ0093VC) += snd-soc-cq93vc.o
 obj-$(CONFIG_SND_SOC_CS42L51)	+= snd-soc-cs42l51.o
 obj-$(CONFIG_SND_SOC_CS4270)	+= snd-soc-cs4270.o
@@ -147,3 +151,7 @@ obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
 obj-$(CONFIG_SND_SOC_WM2000)	+= snd-soc-wm2000.o
 obj-$(CONFIG_SND_SOC_WM9090)	+= snd-soc-wm9090.o
+
+# Z3
+obj-$(CONFIG_SND_SOC_GV7600)   += snd-soc-gv7600.o
+obj-$(CONFIG_SND_SOC_GV7601)   += snd-soc-gv7601.o

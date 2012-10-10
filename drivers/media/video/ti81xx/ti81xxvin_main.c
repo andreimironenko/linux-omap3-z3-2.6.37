@@ -2411,7 +2411,11 @@ static int ti81xxvin_probe(struct platform_device *pdev)
 	if (cpu_is_ti814x())
 		i2c_adap = i2c_get_adapter(3);
 	else if (cpu_is_ti816x())
+#if defined(CONFIG_MACH_Z3_DM816X_MOD)
+		i2c_adap = i2c_get_adapter(1);
+#else
 		i2c_adap = i2c_get_adapter(2);
+#endif
 	else
 		i2c_adap = i2c_get_adapter(2);
 

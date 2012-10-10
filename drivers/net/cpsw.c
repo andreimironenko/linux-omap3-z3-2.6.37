@@ -770,7 +770,12 @@ static void _cpsw_adjust_link(struct cpsw_slave *slave,
 		if (phy->speed == 10)
 			mac_control |= BIT(18);
 		else if (phy->speed == 1000)
-			mac_control |= BIT(7);	/* GIGABITEN	*/
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+        mac_control |= BIT(7);	/* GIGABITEN	*/
+#else
+/* GIGABITEN | FORCE_GIG to ignore MTCLK on Z3 board */
+        mac_control |= (BIT(7)|BIT(17)); 
+#endif
 		if (phy->duplex)
 			mac_control |= BIT(0);	/* FULLDUPLEXEN	*/
 		*link = true;

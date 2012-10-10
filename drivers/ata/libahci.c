@@ -1306,6 +1306,8 @@ int ahci_check_ready(struct ata_link *link)
 }
 EXPORT_SYMBOL_GPL(ahci_check_ready);
 
+#define AHCI_RETRY_COUNT       (10)
+
 static int ahci_softreset(struct ata_link *link, unsigned int *class,
 			  unsigned long deadline)
 {
@@ -1318,6 +1320,19 @@ static int ahci_softreset(struct ata_link *link, unsigned int *class,
 	if (ret && pmp)
 		return ahci_do_softreset(link, class, 0, deadline,
 							ahci_check_ready);
+	/* Some of the Gen 3 devices do not come up in one soft_reset */
+	if (ret && !pmp) {
+		int i = 0;
+		while (i++ < AHCI_RETRY_COUNT) {
+			ret = ahci_do_softreset(link, class, 0, deadline,
+				ahci_check_ready);
+			if (!ret)
+				break;
+		}
+		if (i == AHCI_RETRY_COUNT)
+			printk(KERN_EMERG "AHCI: SRST failed after retries\n");
+	}
+
 	return ret;
 }
 EXPORT_SYMBOL_GPL(ahci_do_softreset);
@@ -1344,6 +1359,20 @@ static int ahci_hardreset(struct ata_link *link, unsigned int *class,
 
 	rc = sata_link_hardreset(link, timing, deadline, &online,
 				 ahci_check_ready);
+
+	/* Some of the Gen 3 devices do not come up in one hard_reset */
+	if (!online) {
+		int i = 0;
+		while (i++ < AHCI_RETRY_COUNT) {
+			rc = sata_link_hardreset(link, timing, deadline,
+				&online, ahci_check_ready);
+			if (online)
+				break;
+		}
+		if (i == AHCI_RETRY_COUNT)
+			printk(KERN_EMERG "AHCI: link down after retries\n");
+	}
+
 
 	ahci_start_engine(ap);
 

@@ -1130,11 +1130,21 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	info->mtd.priv		= &info->nand;
 	info->mtd.name		= dev_name(&pdev->dev);
 	info->mtd.owner		= THIS_MODULE;
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	pdata->ecc_opt		= OMAP_ECC_BCH8_CODE_HW;
+#endif
 	info->ecc_opt		= pdata->ecc_opt;
 
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	info->nand.options	= pdata->devsize;
 	info->nand.options	|= NAND_SKIP_BBTSCAN;
+#else
+// Z3
+	info->nand.options	&= ~NAND_BUSWIDTH_16;
+	info->nand.options	&= ~NAND_SKIP_BBTSCAN;
+// Z3 - for UBIFS
+	info->nand.options	|= NAND_NO_SUBPAGE_WRITE;
+#endif
 
 	/* NAND write protect off */
 	gpmc_cs_configure(info->gpmc_cs, GPMC_CONFIG_WP, 0);

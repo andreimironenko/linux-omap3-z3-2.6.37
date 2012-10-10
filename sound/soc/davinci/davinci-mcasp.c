@@ -29,6 +29,13 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
+#include <asm/mach-types.h>
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#include <mach/z3_fpga.h>
+#include <mach/z3_app.h>
+#endif
+
 #include "davinci-pcm.h"
 #include "davinci-mcasp.h"
 
@@ -135,6 +142,10 @@
 #define AHCLKR		BIT(30)
 #define AFSR		BIT(31)
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define MCASP_BITCLK_FS_PINS_MASK (ACLKX|ACLKR|AFSX|AFSR)
+#endif
+
 /*
  * DAVINCI_MCASP_PDIR_REG - Pin Direction Register Bits
  */
@@ -200,6 +211,9 @@
 #define TX_ASYNC	BIT(6)
 #define ACLKXPOL	BIT(7)
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define ACLKXDIVMASK    0x1f
+#endif
 /*
  * DAVINCI_MCASP_ACLKRCTL_REG Receive Clock Control Register Bits
  */
@@ -208,6 +222,9 @@
 #define RX_ASYNC	BIT(6)
 #define ACLKRPOL	BIT(7)
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define ACLKRDIVMASK    0x1f
+#endif
 /*
  * DAVINCI_MCASP_AHCLKXCTL_REG - High Frequency Transmit Clock Control
  *     Register Bits
@@ -216,6 +233,10 @@
 #define AHCLKXPOL	BIT(14)
 #define AHCLKXE		BIT(15)
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define AHCLKXDIVMASK   0xfff
+#endif
+
 /*
  * DAVINCI_MCASP_AHCLKRCTL_REG - High Frequency Receive Clock Control
  *     Register Bits
@@ -223,6 +244,9 @@
 #define AHCLKRDIV(val)	(val)
 #define AHCLKRPOL	BIT(14)
 #define AHCLKRE		BIT(15)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define AHCLKRDIVMASK   0xfff
+#endif
 
 /*
  * DAVINCI_MCASP_XRSRCTL_BASE_REG -  Serializer Control Register Bits
@@ -298,6 +322,10 @@
 
 #define DAVINCI_MCASP_NUM_SERIALIZER	16
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+#define DAVINCI_CPU_MAX_MCASP           3
+#endif
+
 static inline void mcasp_set_bits(void __iomem *reg, u32 val)
 {
 	__raw_writel(__raw_readl(reg) | val, reg);
@@ -327,7 +355,13 @@ static inline void mcasp_set_ctl_reg(void __iomem *regs, u32 val)
 {
 	int i = 0;
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+/* Look in real GBLCTL_REG for update - shadow reg is not accurate */
+        void __iomem *gblctl_reg = (void __iomem *) ((((unsigned long)regs) & 0xffffff00) + DAVINCI_MCASP_GBLCTL_REG);
+#endif
 	mcasp_set_bits(regs, val);
+
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 
 	/* programming GBLCTL needs to read back from GBLCTL and verfiy */
 	/* loop count is to avoid the lock-up */
@@ -338,7 +372,96 @@ static inline void mcasp_set_ctl_reg(void __iomem *regs, u32 val)
 
 	if (i == 1000 && ((mcasp_get_reg(regs) & val) != val))
 		printk(KERN_ERR "GBLCTL write error\n");
+#else
+
+	/* programming GBLCTL needs to read back from GBLCTL and verfiy */
+	/* loop count is to avoid the lock-up */
+	for (i = 0; i < 100; i++) {
+		if ((mcasp_get_reg(gblctl_reg) & val) == val)
+			break;
+                udelay(1);
+	}
+
+	if (i == 100 && ((mcasp_get_reg(gblctl_reg) & val) != val))
+		printk(KERN_ERR "GBLCTL write error\n");
+
+#endif //!defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 }
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+static void mcasp_set_board_clks(struct davinci_audio_dev *dev)
+{
+        int board_id = z3_fpga_board_id();
+
+        switch ( dev->id )
+        {
+        case 0:
+        default:
+                dev->mclk_out = 0;
+                dev->use_tx_clk_for_rx = 0;
+                break;
+        case 1:
+                dev->mclk_out = AHCLKR|AHCLKX;
+                dev->use_tx_clk_for_rx = 0;
+                break;
+        case 2:
+                switch ( board_id ) 
+                {
+                case Z3_BOARD_ID_APP_31:
+                        if (z3_fpga_get_aic_disable() == 0 ) {
+                                if (z3_fpga_get_aic_ext_master() == 0 ) {
+                                        dev->mclk_out = AHCLKX;
+                                } else {
+                                        dev->mclk_out = 0;
+                                }
+                                dev->use_tx_clk_for_rx = 1;
+                        } else {
+                                dev->mclk_out = 0;
+                                dev->use_tx_clk_for_rx = 1;
+                        }
+                        break;
+
+                default:
+                        dev->mclk_out = AHCLKX;
+                        dev->use_tx_clk_for_rx = 1;
+                        break;
+                }
+                break;
+        }
+}
+
+static void mcasp_enable_mclk(struct davinci_audio_dev *dev)
+{
+        mcasp_set_board_clks(dev);
+
+        if ( AHCLKX == (AHCLKX & dev->mclk_out ) ) {
+                // on the Z3 board, the AHCLKX is used as the MCLK to the codec
+                // so we have to turn it on even for rx
+                mcasp_mod_bits( dev->base + DAVINCI_MCASP_AHCLKXCTL_REG, AHCLKXDIV(7), AHCLKXDIVMASK);
+//                mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXDIV(0), ACLKXDIVMASK);
+                //printk("turn on txhclk with glbctlx reg\n");
+                mcasp_set_bits(dev->base + DAVINCI_MCASP_PDIR_REG, AHCLKX);
+
+                mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
+                //printk("turn on txhclk - done\n");
+        } else {
+                mcasp_mod_bits( dev->base + DAVINCI_MCASP_AHCLKXCTL_REG, AHCLKXDIV(0), AHCLKXDIVMASK);
+                mcasp_clr_bits(dev->base + DAVINCI_MCASP_PDIR_REG, AHCLKX);
+                mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
+        }
+
+        if ( AHCLKR == (AHCLKR & dev->mclk_out ) ) {
+                mcasp_mod_bits( dev->base + DAVINCI_MCASP_AHCLKRCTL_REG, AHCLKRDIV(7), AHCLKRDIVMASK);
+                mcasp_set_bits(dev->base + DAVINCI_MCASP_PDIR_REG, AHCLKR);
+                mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXHCLKRST);
+        } else {
+                mcasp_mod_bits( dev->base + DAVINCI_MCASP_AHCLKRCTL_REG, AHCLKRDIV(0), AHCLKRDIVMASK);
+                mcasp_clr_bits(dev->base + DAVINCI_MCASP_PDIR_REG, AHCLKR);
+                mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXHCLKRST);
+        }
+}
+
+#endif //machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 
 static void mcasp_start_rx(struct davinci_audio_dev *dev)
 {
@@ -359,6 +482,15 @@ static void mcasp_start_tx(struct davinci_audio_dev *dev)
 {
 	u8 offset = 0, i;
 	u32 cnt;
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    mcasp_enable_mclk( dev );
+
+	mcasp_mod_bits( dev->base + DAVINCI_MCASP_AHCLKXCTL_REG, AHCLKXDIV(7), AHCLKXDIVMASK);
+	mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXDIV(dev->aclkdiv), ACLKXDIVMASK);
+
+    mcasp_mod_bits(dev->base + DAVINCI_MCASP_PDIR_REG, dev->pdir_tx_mask, MCASP_BITCLK_FS_PINS_MASK);
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
 
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXCLKRST);
@@ -401,13 +533,31 @@ static void davinci_mcasp_start(struct davinci_audio_dev *dev, int stream)
 
 static void mcasp_stop_rx(struct davinci_audio_dev *dev)
 {
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+  if ( AHCLKR == (AHCLKR & dev->mclk_out ) ) {
+          mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXHCLKRST);
+        } else {
+                mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, 0);
+        }
+#else
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, 0);
+#endif
+
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_RXSTAT_REG, 0xFFFFFFFF);
 }
 
 static void mcasp_stop_tx(struct davinci_audio_dev *dev)
 {
-	mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, 0);
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    mcasp_mod_bits(dev->base + DAVINCI_MCASP_PDIR_REG, 0, MCASP_BITCLK_FS_PINS_MASK);
+        if ( AHCLKX == (AHCLKX & dev->mclk_out ) ) {
+                mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
+        } else {
+                mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, 0);
+        }
+#else
+  mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, 0);
+#endif
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_TXSTAT_REG, 0xFFFFFFFF);
 }
 
@@ -431,8 +581,37 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 {
 	struct davinci_audio_dev *dev = snd_soc_dai_get_drvdata(cpu_dai);
 	void __iomem *base = dev->base;
+	
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+	u32 normal_fs_polarity;
+    u32 inverted_fs_polarity;
+
+        
+    mcasp_enable_mclk( dev );
+
+    dev->pdir_tx_mask = 0;
+#endif
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
+case SND_SOC_DAIFMT_CBS_CFM:
+		/* codec is clock and frame slave */
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXE);
+		mcasp_clr_bits(base + DAVINCI_MCASP_TXFMCTL_REG, AFSXE);
+
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRE);
+		mcasp_clr_bits(base + DAVINCI_MCASP_RXFMCTL_REG, AFSRE);
+
+//		mcasp_mod_bits(base + DAVINCI_MCASP_PDIR_REG, , MCASP_BITCLK_FS_PINS_MASK);
+        dev->pdir_tx_mask = (ACLKX|ACLKR);
+                
+        mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRDIV(dev->aclkdiv), ACLKRDIVMASK);
+        mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXDIV(dev->aclkdiv), ACLKXDIVMASK);
+
+		break;
+#endif
 	case SND_SOC_DAIFMT_CBS_CFS:
 		/* codec is clock and frame slave */
 		mcasp_set_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXE);
@@ -440,8 +619,15 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 		mcasp_set_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRE);
 		mcasp_set_bits(base + DAVINCI_MCASP_RXFMCTL_REG, AFSRE);
-
+		
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 		mcasp_set_bits(base + DAVINCI_MCASP_PDIR_REG, (0x7 << 26));
+#else
+        dev->pdir_tx_mask = MCASP_BITCLK_FS_PINS_MASK;
+
+        mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRDIV(dev->aclkdiv), ACLKRDIVMASK);
+        mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXDIV(dev->aclkdiv), ACLKXDIVMASK);
+#endif
 		break;
 	case SND_SOC_DAIFMT_CBM_CFS:
 		/* codec is clock master and frame slave */
@@ -451,7 +637,11 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		mcasp_set_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRE);
 		mcasp_set_bits(base + DAVINCI_MCASP_RXFMCTL_REG, AFSRE);
 
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 		mcasp_set_bits(base + DAVINCI_MCASP_PDIR_REG, (0x2d << 26));
+#else
+        mcasp_mod_bits(base + DAVINCI_MCASP_PDIR_REG, (AFSX|AFSR), MCASP_BITCLK_FS_PINS_MASK);
+#endif
 		break;
 	case SND_SOC_DAIFMT_CBM_CFM:
 		/* codec is clock and frame master */
@@ -460,14 +650,33 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRE);
 		mcasp_clr_bits(base + DAVINCI_MCASP_RXFMCTL_REG, AFSRE);
-
+		
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 		mcasp_clr_bits(base + DAVINCI_MCASP_PDIR_REG, (0x3f << 26));
+#else
+        mcasp_mod_bits(base + DAVINCI_MCASP_PDIR_REG, 0, MCASP_BITCLK_FS_PINS_MASK);
+#endif
 		break;
 
 	default:
 		return -EINVAL;
 	}
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
+switch (fmt & (SND_SOC_DAIFMT_FORMAT_MASK ) ) {
+	case SND_SOC_DAIFMT_I2S:
+                normal_fs_polarity = FSXPOL;
+                inverted_fs_polarity = 0;
+                break;
+        default:
+                normal_fs_polarity = 0;
+                inverted_fs_polarity = FSXPOL;
+                break;
+        }
+#endif
+
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 	switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
 	case SND_SOC_DAIFMT_IB_NF:
 		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXPOL);
@@ -500,9 +709,71 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRPOL);
 		mcasp_clr_bits(base + DAVINCI_MCASP_RXFMCTL_REG, FSRPOL);
 		break;
+#else
+    switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
+	case SND_SOC_DAIFMT_IB_NF:
+		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_TXFMCTL_REG, normal_fs_polarity, FSXPOL);
+
+		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_RXFMCTL_REG, normal_fs_polarity, FSRPOL);
+		break;
+
+	case SND_SOC_DAIFMT_NB_IF:
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_TXFMCTL_REG, inverted_fs_polarity, FSXPOL);
+
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_RXFMCTL_REG, inverted_fs_polarity, FSRPOL);
+		break;
+
+	case SND_SOC_DAIFMT_IB_IF:
+		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_TXFMCTL_REG, inverted_fs_polarity, FSXPOL);
+
+		mcasp_clr_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_RXFMCTL_REG, inverted_fs_polarity, FSRPOL);
+		break;
+
+	case SND_SOC_DAIFMT_NB_NF:
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_TXFMCTL_REG, normal_fs_polarity, FSXPOL);
+
+		mcasp_set_bits(base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRPOL);
+		mcasp_mod_bits(base + DAVINCI_MCASP_RXFMCTL_REG, normal_fs_polarity, FSRPOL);
+		break;
+#endif  //!machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
+
 
 	default:
 		return -EINVAL;
+		}
+		
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+switch (fmt & (SND_SOC_DAIFMT_FORMAT_MASK ) ) {
+	case SND_SOC_DAIFMT_I2S:
+        default:
+		mcasp_set_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG, FSRDUR);
+		mcasp_set_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG, FSXDUR);
+                break;
+	case SND_SOC_DAIFMT_DSP_A:
+	case SND_SOC_DAIFMT_DSP_B:
+		mcasp_clr_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG, FSRDUR);
+		mcasp_clr_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG, FSXDUR);
+                break;
+        }
+
+	switch (fmt & (SND_SOC_DAIFMT_FORMAT_MASK ) ) {
+	case SND_SOC_DAIFMT_I2S:
+                mcasp_mod_bits(dev->base + DAVINCI_MCASP_RXFMT_REG, FSRDLY(1), FSRDLY(0x3));
+                mcasp_mod_bits(dev->base + DAVINCI_MCASP_TXFMT_REG, FSXDLY(1), FSXDLY(0x3));
+                break;
+
+        default:
+                mcasp_mod_bits(dev->base + DAVINCI_MCASP_RXFMT_REG, FSRDLY(0), FSRDLY(0x3));
+                mcasp_mod_bits(dev->base + DAVINCI_MCASP_TXFMT_REG, FSXDLY(0), FSXDLY(0x3));
+                break;
+#endif //machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 	}
 
 	return 0;
@@ -519,47 +790,74 @@ static int davinci_config_channel_size(struct davinci_audio_dev *dev,
 		fmt = 0x03;
 		rotate = 6;
 		mask = 0x000000ff;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0x1f;
+#endif
 		break;
 
 	case DAVINCI_AUDIO_WORD_12:
 		fmt = 0x05;
 		rotate = 5;
 		mask = 0x00000fff;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0xf;
+#endif
 		break;
 
 	case DAVINCI_AUDIO_WORD_16:
 		fmt = 0x07;
 		rotate = 4;
 		mask = 0x0000ffff;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0xf;
+#endif
 		break;
 
 	case DAVINCI_AUDIO_WORD_20:
 		fmt = 0x09;
 		rotate = 3;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0x7;
+#endif
 		mask = 0x000fffff;
 		break;
 
 	case DAVINCI_AUDIO_WORD_24:
 		fmt = 0x0B;
 		rotate = 2;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0x7;
+#endif
 		mask = 0x00ffffff;
 		break;
 
 	case DAVINCI_AUDIO_WORD_28:
 		fmt = 0x0D;
 		rotate = 1;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0x7;
+#endif
 		mask = 0x0fffffff;
 		break;
 
 	case DAVINCI_AUDIO_WORD_32:
 		fmt = 0x0F;
 		rotate = 0;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        dev->aclkdiv = 0x7;
+#endif
 		mask = 0xffffffff;
 		break;
 
 	default:
 		return -EINVAL;
+}
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+  if ( dev->rrot_nibbles_additional ) {
+                rotate += dev->rrot_nibbles_additional;
+                rotate &= 7;
 	}
+#endif
 
 	mcasp_mod_bits(dev->base + DAVINCI_MCASP_RXFMT_REG,
 					RXSSZ(fmt), RXSSZ(0x0F));
@@ -571,6 +869,11 @@ static int davinci_config_channel_size(struct davinci_audio_dev *dev,
 							RXROT(7));
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_TXMASK_REG, mask);
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_RXMASK_REG, mask);
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKRCTL_REG, ACLKRDIV(dev->aclkdiv), ACLKRDIVMASK);
+    mcasp_mod_bits( dev->base + DAVINCI_MCASP_ACLKXCTL_REG, ACLKXDIV(dev->aclkdiv), ACLKXDIVMASK);
+#endif
 
 	return 0;
 }
@@ -641,7 +944,15 @@ static void davinci_hw_param(struct davinci_audio_dev *dev, int stream)
 	for (i = 0; i < active_slots; i++)
 		mask |= (1 << i);
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+ if ( dev->use_tx_clk_for_rx ) {
+                mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG, TX_ASYNC);
+        } else {
+                mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG, TX_ASYNC);
+        }
+#else
 	mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG, TX_ASYNC);
+#endif
 
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		/* bit stream is MSB first  with no delay */
@@ -657,8 +968,9 @@ static void davinci_hw_param(struct davinci_audio_dev *dev, int stream)
 		else
 			printk(KERN_ERR "playback tdm slot %d not supported\n",
 				dev->tdm_slots);
-
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 		mcasp_clr_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG, FSXDUR);
+#endif
 	} else {
 		/* bit stream is MSB first with no delay */
 		/* DSP_B mode */
@@ -674,7 +986,9 @@ static void davinci_hw_param(struct davinci_audio_dev *dev, int stream)
 			printk(KERN_ERR "capture tdm slot %d not supported\n",
 				dev->tdm_slots);
 
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 		mcasp_clr_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG, FSRDUR);
+#endif
 	}
 }
 
@@ -721,6 +1035,9 @@ static int davinci_mcasp_hw_params(struct snd_pcm_substream *substream,
 					&dev->dma_params[substream->stream];
 	int word_length;
 	u8 fifo_level;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    mcasp_set_board_clks(dev);
+#endif
 
 	davinci_hw_common_param(dev, substream->stream);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -820,6 +1137,7 @@ static struct snd_soc_dai_ops davinci_mcasp_dai_ops = {
 
 };
 
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 static struct snd_soc_dai_driver davinci_mcasp_dai[] = {
 	{
 		.name		= "davinci-mcasp.0",
@@ -854,6 +1172,112 @@ static struct snd_soc_dai_driver davinci_mcasp_dai[] = {
 	},
 
 };
+#else
+
+static struct snd_soc_dai_driver davinci_mcasp_dai[DAVINCI_CPU_MAX_MCASP][2] = {
+        {
+                {
+                        .name		= "davinci-mcasp.0",
+                        .playback	= {
+                                .channels_min	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats 	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .capture 	= {
+                                .channels_min 	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+
+                },
+                {
+                        .name		= "davinci-mcasp.0",
+                        .playback 	= {
+                                .channels_min	= 1,
+                                .channels_max	= 384,
+                                .rates		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S16_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+                },
+        },
+        {
+                {
+                        .name		= "davinci-mcasp.1",
+                        .playback	= {
+                                .channels_min	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats 	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .capture 	= {
+                                .channels_min 	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+
+                },
+                {
+                        .name		= "davinci-mcasp.1",
+                        .playback 	= {
+                                .channels_min	= 1,
+                                .channels_max	= 384,
+                                .rates		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S16_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+                },
+        },
+        {
+                {
+                        .name		= "davinci-mcasp.2",
+                        .playback	= {
+                                .channels_min	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats 	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .capture 	= {
+                                .channels_min 	= 2,
+                                .channels_max 	= 2,
+                                .rates 		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S8 |
+                                SNDRV_PCM_FMTBIT_S16_LE |
+                                SNDRV_PCM_FMTBIT_S32_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+
+                },
+                {
+                        .name		= "davinci-mcasp.2",
+                        .playback 	= {
+                                .channels_min	= 1,
+                                .channels_max	= 384,
+                                .rates		= DAVINCI_MCASP_RATES,
+                                .formats	= SNDRV_PCM_FMTBIT_S16_LE,
+                        },
+                        .ops 		= &davinci_mcasp_dai_ops,
+                },
+        },
+
+};
+
+#endif //!machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 
 static int davinci_mcasp_probe(struct platform_device *pdev)
 {
@@ -891,6 +1315,10 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 
 	clk_enable(dev->clk);
 	dev->clk_active = 1;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    dev->id = pdev->id;	
+    mcasp_set_board_clks(dev);	
+#endif
 
 	dev->base = ioremap(mem->start, resource_size(mem));
 	if (!dev->base) {
@@ -907,6 +1335,9 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	dev->version = pdata->version;
 	dev->txnumevt = pdata->txnumevt;
 	dev->rxnumevt = pdata->rxnumevt;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+    dev->rrot_nibbles_additional = pdata->rrot_nibbles;
+#endif
 
 	dma_data = &dev->dma_params[SNDRV_PCM_STREAM_PLAYBACK];
 	dma_data->asp_chan_q = pdata->asp_chan_q;
@@ -943,6 +1374,13 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 		goto err_iounmap;
 	}
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+if (!pdev->id > DAVINCI_CPU_MAX_MCASP) {
+		dev_err(&pdev->dev, "mcasp id out of range (%u>=%u)\n", pdev->id, DAVINCI_CPU_MAX_MCASP);
+		ret = -ENODEV;
+		goto err_iounmap;
+	}
+#endif
 	dma_data->channel = res->start;
 	dev_set_drvdata(&pdev->dev, dev);
 	ret = snd_soc_register_dai(&pdev->dev, &davinci_mcasp_dai[pdata->op_mode]);

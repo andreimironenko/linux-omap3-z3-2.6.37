@@ -41,6 +41,10 @@ static int omap2_nand_gpmc_retime(void)
 	if (!gpmc_nand_data->gpmc_t)
 		return 0;
 
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+        printk( KERN_DEBUG "omap2_nand_gpmc_retime: Disabled by Z3\n" );
+#else
 	memset(&t, 0, sizeof(t));
 	t.sync_clk = gpmc_nand_data->gpmc_t->sync_clk;
 	t.cs_on = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->cs_on);
@@ -79,7 +83,7 @@ static int omap2_nand_gpmc_retime(void)
 	err = gpmc_cs_set_timings(gpmc_nand_data->cs, &t);
 	if (err)
 		return err;
-
+#endif
 	return 0;
 }
 

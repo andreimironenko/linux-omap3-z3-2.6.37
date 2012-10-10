@@ -416,6 +416,7 @@ static void gen_text(struct vivi_dev *dev, char *basep,
 {
 	int line;
 
+#if defined( CONFIG_FONT_8x16 )
 	/* Checks if it is possible to show string */
 	if (y + 16 >= dev->height || x + strlen(text) * 8 >= dev->width)
 		return;
@@ -439,6 +440,7 @@ static void gen_text(struct vivi_dev *dev, char *basep,
 			}
 		}
 	}
+#endif
 }
 
 static void vivi_fillbuff(struct vivi_dev *dev, struct vivi_buffer *buf)
@@ -1226,15 +1228,17 @@ free_dev:
  */
 static int __init vivi_init(void)
 {
-	const struct font_desc *font = find_font("VGA8x16");
+	const struct font_desc *font;
 	int ret = 0, i;
 
+#if defined( CONFIG_FONT_8x16 )
+	font = find_font("VGA8x16");
 	if (font == NULL) {
 		printk(KERN_ERR "vivi: could not find font\n");
 		return -ENODEV;
 	}
 	font8x16 = font->data;
-
+#endif
 	if (n_devs <= 0)
 		n_devs = 1;
 

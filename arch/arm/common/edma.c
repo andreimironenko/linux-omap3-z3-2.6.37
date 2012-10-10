@@ -515,18 +515,18 @@ static int reserve_contiguous_slots(int ctlr, unsigned int id,
 static int prepare_unused_channel_list(struct device *dev, void *data)
 {
 	struct platform_device *pdev = to_platform_device(dev);
-	int i, ctlr;
+	int i,j,ctlr;
 
 	for (i = 0; i < pdev->num_resources; i++) {
 		if ((pdev->resource[i].flags & IORESOURCE_DMA) &&
-				(int)pdev->resource[i].start >= 0) {
-			ctlr = EDMA_CTLR(pdev->resource[i].start);
-			/* confirm the range */
-			if (EDMA_CHAN_SLOT(pdev->resource[i].start <
-							EDMA_MAX_DMACH))
-				clear_bit(
-					EDMA_CHAN_SLOT(pdev->resource[i].start),
-						edma_info[ctlr]->edma_unused);
+                    (int)pdev->resource[i].start >= 0) {
+                        for (j=pdev->resource[i].start; j<= pdev->resource[i].end; j++) {
+                                if (EDMA_CHAN_SLOT(j) < EDMA_MAX_DMACH) {
+                                        ctlr = EDMA_CTLR(j);
+                                        clear_bit(EDMA_CHAN_SLOT(j),
+                                                  edma_info[ctlr]->edma_unused);
+                                }
+                        }
 		}
 	}
 

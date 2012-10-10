@@ -26,12 +26,15 @@
 #include <plat/asp.h>
 #endif
 
+#include <asm/mach-types.h>
+
 #include "davinci-pcm.h"
 
 #define DAVINCI_MCASP_RATES	SNDRV_PCM_RATE_8000_96000
 #define DAVINCI_MCASP_I2S_DAI	0
 #define DAVINCI_MCASP_DIT_DAI	1
 
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 enum {
 	DAVINCI_AUDIO_WORD_8 = 0,
 	DAVINCI_AUDIO_WORD_12,
@@ -41,6 +44,17 @@ enum {
 	DAVINCI_AUDIO_WORD_32,
 	DAVINCI_AUDIO_WORD_28,  /* This is only valid for McASP */
 };
+#else
+typedef enum {
+	DAVINCI_AUDIO_WORD_8 = 0,
+	DAVINCI_AUDIO_WORD_12,
+	DAVINCI_AUDIO_WORD_16,
+	DAVINCI_AUDIO_WORD_20,
+	DAVINCI_AUDIO_WORD_24,
+	DAVINCI_AUDIO_WORD_32,
+	DAVINCI_AUDIO_WORD_28,  /* This is only valid for McASP */
+} davinci_mcasp_audio_word_t;
+#endif //!defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 
 struct davinci_audio_dev {
 	struct davinci_pcm_dma_params dma_params[2];
@@ -49,7 +63,16 @@ struct davinci_audio_dev {
 	struct clk *clk;
 	unsigned int codec_fmt;
 	u8 clk_active;
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+        u8          aclkdiv;
+        u32         pdir_tx_mask;
 
+        /* Hardware options */
+        u32 mclk_out; // Bit mask of HCLK pins to drive master clock for codec 
+        u32 use_tx_clk_for_rx; 
+        int id;
+		u8      rrot_nibbles_additional;
+#endif
 	/* McASP specific data */
 	int	tdm_slots;
 	u8	op_mode;

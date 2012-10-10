@@ -96,6 +96,8 @@ obj-$(CONFIG_ARCH_OMAP4)		+= prcm.o cm2xxx_3xxx.o cminst44xx.o \
 					   prminst44xx.o
 obj-$(CONFIG_ARCH_TI81XX)		+= prcm.o cm2xxx_3xxx.o prm2xxx_3xxx.o \
 					   cm81xx.o
+obj-$(CONFIG_MACH_Z3_DM816X_MOD) 	+= z3_fpga.o
+obj-$(CONFIG_MACH_Z3_DM814X_MOD) 	+= z3_fpga.o
 
 # OMAP powerdomain framework
 powerdomain-common			+= powerdomain.o powerdomain-common.o
@@ -255,6 +257,11 @@ obj-$(CONFIG_MACH_SBC3530)		+= board-omap3stalker.o \
 obj-$(CONFIG_MACH_TI8148EVM)		+= board-ti8148evm.o \
 					   hsmmc.o \
 					   board-flash.o
+
+obj-$(CONFIG_MACH_Z3_DM814X_MOD)    += board-ti8148z3.o \
+                       hsmmc.o \
+                       board-flash.o
+ 
 obj-$(CONFIG_MACH_DM385EVM)		+= board-dm385evm.o \
 					   hsmmc.o \
 					   board-flash.o

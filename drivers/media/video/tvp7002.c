@@ -32,6 +32,7 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-common.h>
+#include <asm/div64.h>
 #include "tvp7002_reg.h"
 
 MODULE_DESCRIPTION("TI TVP7002 Video and Graphics Digitizer driver");
@@ -60,10 +61,16 @@ MODULE_LICENSE("GPL");
 #define TVP7002_CL_SHIFT	8
 #define TVP7002_CL_MASK		0x0f
 
+#define TVP7002_IN_MUX_SEL_2_EXTCLK_MASK 0x08
+
 /* Debug functions */
-static int debug;
-module_param(debug, bool, 0644);
+static int debug = 0;
+module_param(debug, int, 0644);
 MODULE_PARM_DESC(debug, "Debug level (0-2)");
+
+static int force_intclk = 0;
+module_param(force_intclk, int, 0644);
+MODULE_PARM_DESC(force_intclk, "Force internal clock");
 
 /* Structure for register values */
 struct i2c_reg_value {
@@ -102,10 +109,18 @@ static const struct i2c_reg_value tvp7002_init_default[] = {
 	{ TVP7002_SYNC_DETECT_STAT, 0xff, TVP7002_READ },
 	{ TVP7002_OUT_FORMATTER, 0x47, TVP7002_WRITE },
 	{ TVP7002_MISC_CTL_1, 0x01, TVP7002_WRITE },
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	{ TVP7002_MISC_CTL_2, 0x00, TVP7002_WRITE },
+#else
+	{ TVP7002_MISC_CTL_2, 0x03, TVP7002_WRITE }, // start off in tri-state
+#endif
 	{ TVP7002_MISC_CTL_3, 0x01, TVP7002_WRITE },
 	{ TVP7002_IN_MUX_SEL_1, 0x00, TVP7002_WRITE },
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	{ TVP7002_IN_MUX_SEL_2, 0x67, TVP7002_WRITE },
+#else
+    { TVP7002_IN_MUX_SEL_2, 0x6f, TVP7002_WRITE }, // external clock
+#endif
 	{ TVP7002_B_AND_G_COARSE_GAIN, 0x77, TVP7002_WRITE },
 	{ TVP7002_R_COARSE_GAIN, 0x07, TVP7002_WRITE },
 	{ TVP7002_FINE_OFF_LSBS, 0x00, TVP7002_WRITE },
@@ -225,10 +240,20 @@ static const struct i2c_reg_value tvp7002_parms_1080I60[] = {
 	{ TVP7002_HPLL_FDBK_DIV_MSBS, 0x89, TVP7002_WRITE },
 	{ TVP7002_HPLL_FDBK_DIV_LSBS, 0x80, TVP7002_WRITE },
 	{ TVP7002_HPLL_CRTL, 0x98, TVP7002_WRITE },
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	{ TVP7002_HPLL_PHASE_SEL, 0x14, TVP7002_WRITE },
 	{ TVP7002_AVID_START_PIXEL_LSBS, 0x06, TVP7002_WRITE },
+#else
+	{ TVP7002_HPLL_PHASE_SEL, 0xA0, TVP7002_WRITE },
+	{ TVP7002_AVID_START_PIXEL_LSBS, 0x00, TVP7002_WRITE },
+#endif
+	
 	{ TVP7002_AVID_START_PIXEL_MSBS, 0x01, TVP7002_WRITE },
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	{ TVP7002_AVID_STOP_PIXEL_LSBS, 0x8a, TVP7002_WRITE },
+#else
+    { TVP7002_AVID_STOP_PIXEL_LSBS, 0x84, TVP7002_WRITE },
+#endif
 	{ TVP7002_AVID_STOP_PIXEL_MSBS, 0x08, TVP7002_WRITE },
 	{ TVP7002_VBLK_F_0_START_L_OFF, 0x02, TVP7002_WRITE },
 	{ TVP7002_VBLK_F_1_START_L_OFF, 0x02, TVP7002_WRITE },
@@ -320,7 +345,11 @@ static const struct i2c_reg_value tvp7002_parms_720P50[] = {
 	{ TVP7002_AVID_STOP_PIXEL_MSBS, 0x06, TVP7002_WRITE },
 	{ TVP7002_VBLK_F_0_START_L_OFF, 0x05, TVP7002_WRITE },
 	{ TVP7002_VBLK_F_1_START_L_OFF, 0x00, TVP7002_WRITE },
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	{ TVP7002_VBLK_F_0_DURATION, 0x2D, TVP7002_WRITE },
+#else
+    { TVP7002_VBLK_F_0_DURATION, 0x1E, TVP7002_WRITE },
+#endif
 	{ TVP7002_VBLK_F_1_DURATION, 0x00, TVP7002_WRITE },
 	{ TVP7002_ALC_PLACEMENT, 0x5a, TVP7002_WRITE },
 	{ TVP7002_CLAMP_START, 0x32, TVP7002_WRITE },
@@ -340,10 +369,27 @@ struct tvp7002_preset_definition {
 	u16 lines_per_frame;
 	u16 cpl_min;
 	u16 cpl_max;
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+	u16 cpl_min_ext_clk;
+	u16 cpl_max_ext_clk;
+#endif
 };
 
 /* Struct list for digital video presets */
 static const struct tvp7002_preset_definition tvp7002_presets[] = {
+
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+{
+		V4L2_DV_720P59_94,
+		tvp7002_parms_720P60,
+		V4L2_COLORSPACE_REC709,
+		V4L2_FIELD_NONE,
+		1,
+		0x2EE,
+		0, // need external clock to detect
+		0,
+},
+#endif
 	{
 		V4L2_DV_720P60,
 		tvp7002_parms_720P60,
@@ -354,6 +400,18 @@ static const struct tvp7002_preset_definition tvp7002_presets[] = {
 		135,
 		153
 	},
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+{
+		V4L2_DV_1080I29_97,
+		tvp7002_parms_1080I60,
+		V4L2_COLORSPACE_REC709,
+		V4L2_FIELD_INTERLACED,
+		0,
+		0x465,
+		0, //need external clock to detect
+		0,
+},	
+#endif	
 	{
 		V4L2_DV_1080I60,
 		tvp7002_parms_1080I60,
@@ -503,6 +561,7 @@ static int tvp7002_write(struct v4l2_subdev *sd, u8 addr, u8 value)
 
 	c = v4l2_get_subdevdata(sd);
 
+        v4l2_dbg(1, debug, sd, "Write reg x%02x val %02x\n", (int)addr, (int)value );
 	for (retry = 0; retry < I2C_RETRY_COUNT; retry++) {
 		error = i2c_smbus_write_byte_data(c, addr, value);
 
@@ -733,8 +792,64 @@ static int tvp7002_query_dv_preset(struct v4l2_subdev *sd,
 	u8 cpl_lsb;
 	u8 cpl_msb;
 	int index;
-
+	
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+  u32 int_clk_freq = 6500000;
+  u32 ext_clk_freq = 125000100;
+  u8 in_mux_sel_2;
+  u64 cpl64;	
+#endif
 	device = to_tvp7002(sd);
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+for (index = 0; index < NUM_PRESETS; index++) {
+                
+
+                switch ( presets[index].preset ) 
+                {
+                case V4L2_DV_720P59_94:
+                        lpfr = presets[index].lines_per_frame;
+                        cpl64 = ext_clk_freq;
+                        cpl64 *= 1001;
+                        do_div( cpl64, (lpfr*60000));
+
+                        presets[index].cpl_min_ext_clk = cpl64-1;
+                        presets[index].cpl_max_ext_clk = cpl64+1;
+                        break;
+                case V4L2_DV_1080I29_97:
+                        lpfr = presets[index].lines_per_frame;
+                        cpl64 = ext_clk_freq;
+                        cpl64 *= 1001;
+                        do_div( cpl64, (lpfr*30000));
+
+                        presets[index].cpl_min_ext_clk = cpl64-1;
+                        presets[index].cpl_max_ext_clk = cpl64+1;
+                        break;
+                default:
+                        presets[index].cpl_min_ext_clk = (presets[index].cpl_min * (ext_clk_freq/100))  / (int_clk_freq/100); 
+                        presets[index].cpl_max_ext_clk = (presets[index].cpl_max * (ext_clk_freq/100))  / (int_clk_freq/100); 
+                        break;
+
+                }
+
+        }
+
+
+        tvp7002_read_err(sd, TVP7002_IN_MUX_SEL_2,    &in_mux_sel_2, &error);
+	if (error < 0)
+		return error;
+
+        if ( (!!force_intclk) != (!((in_mux_sel_2 & TVP7002_IN_MUX_SEL_2_EXTCLK_MASK))) ) {
+                /* Flip between internal vs external clock */
+                in_mux_sel_2 ^= TVP7002_IN_MUX_SEL_2_EXTCLK_MASK;
+                error = tvp7002_write(sd, TVP7002_IN_MUX_SEL_2, in_mux_sel_2 );
+                if (error < 0)
+                        return error;
+
+                /* Wait for new clock */
+                msleep( 50 );
+        }
+
+endif
 
 	/* Read standards from device registers */
 	tvp7002_read_err(sd, TVP7002_L_FRAME_STAT_LSBS, &lpf_lsb, &error);
@@ -760,8 +875,19 @@ static int tvp7002_query_dv_preset(struct v4l2_subdev *sd,
 			progressive == presets->progressive) {
 			if (presets->cpl_min == 0xffff)
 				break;
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 			if (cpln >= presets->cpl_min && cpln <= presets->cpl_max)
 				break;
+#else
+            if ( 0 != (in_mux_sel_2 & TVP7002_IN_MUX_SEL_2_EXTCLK_MASK) ) // external clock  
+                        {
+                                if (cpln >= presets->cpl_min_ext_clk && cpln <= presets->cpl_max_ext_clk)
+                                        break;
+                        } else {
+                                if (cpln >= presets->cpl_min && cpln <= presets->cpl_max)
+                                        break;
+                        }
+#endif
 		}
 
 	if (index == NUM_PRESETS) {
@@ -862,8 +988,10 @@ static int tvp7002_s_stream(struct v4l2_subdev *sd, int enable)
 	struct tvp7002 *device = to_tvp7002(sd);
 	int error = 0;
 
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	if (device->streaming == enable)
 		return 0;
+#endif
 
 	if (enable) {
 		/* Set output state on (low impedance means stream on) */
@@ -1043,8 +1171,13 @@ static int tvp7002_probe(struct i2c_client *c, const struct i2c_device_id *id)
 		goto found_error;
 
 	/* Set polarity information after registers have been set */
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	polarity_a = 0x20 | device->pdata->hs_polarity << 5
 			| device->pdata->vs_polarity << 2;
+#else
+	polarity_a = 0x5B;//0x00 | device->pdata->hs_polarity << 5
+		     //	| device->pdata->vs_polarity << 2;
+#endif
 	error = tvp7002_write(sd, TVP7002_SYNC_CTL_1, polarity_a);
 	if (error < 0)
 		goto found_error;
@@ -1052,6 +1185,7 @@ static int tvp7002_probe(struct i2c_client *c, const struct i2c_device_id *id)
 	polarity_b = device->pdata->fid_polarity << 2
 			| device->pdata->sog_polarity << 1
 			| device->pdata->clk_polarity;
+			
 	error = tvp7002_write(sd, TVP7002_MISC_CTL_3, polarity_b);
 	if (error < 0)
 		goto found_error;

@@ -154,11 +154,13 @@ static struct gpmc_timings nand_timings_ti814x = {
 	.wr_data_mux_bus = 0,
 };
 
+static int (dummy_dev_ready)(struct omap_nand_platform_data *d) { (void)d; return 1; }
+
 static struct omap_nand_platform_data board_nand_data = {
 	.nand_setup	= NULL,
 	.gpmc_t		= &nand_timings,
 	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
-	.dev_ready	= NULL,
+	.dev_ready	= dummy_dev_ready, //omap driver will use its own
 	.devsize	= 0,	/* '0' for 8-bit, '1' for 16-bit device */
 };
 
@@ -174,13 +176,19 @@ __init board_nand_init(struct mtd_partition *nand_parts,
 	board_nand_data.gpmc_irq = OMAP_GPMC_IRQ_BASE + cs;
 
 	if (cpu_is_omap3630())
-		board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_HW;
+		board_nand_data.ecc_opt = OMAP_ECC_BCH8_CODE_HW;
 
 	if (cpu_is_omap3517() || cpu_is_omap3505())
 		board_nand_data.gpmc_t = NULL;
 
 	if (cpu_is_ti81xx()) {
-		board_nand_data.ecc_opt = OMAP_ECC_BCH8_CODE_HW;
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+		board_nand_data.devsize = 0;
+		board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_DEFAULT;
+#else
+		board_nand_data.devsize = 1;
+		board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_HW;
+#endif
 		board_nand_data.xfer_type = NAND_OMAP_PREFETCH_POLLED;
 
 		/*

@@ -64,6 +64,7 @@
  */
 #define PAGE_SIZE_16MB            0x1000000
 
+#define EZSDK_5_02_VPSSM3_VA_DEFAULT 0xBF900000
 
 #define NOTIFY_MMUPAGE_ALIGN(size, psz)  (((size) + psz - 1) & ~(psz - 1))
 #define MMU_CAM_PRESERVE          (1 << 3)
@@ -93,7 +94,7 @@ MODULE_PARM_DESC(videom3_notify_va, "Specify the slave virtual address where"
 				"required at kernel boot time ");
 
 /* notify slave virtual address of vpssm3*/
-static  int  vpssm3_notify_va ;
+static  int  vpssm3_notify_va = EZSDK_5_02_VPSSM3_VA_DEFAULT;
 module_param_named(vpssm3_sva, vpssm3_notify_va, int,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(vpssm3_notify_va, "Specify the slave virtual address where the"
@@ -414,6 +415,12 @@ static int __init notify_init(void)
 		}
 
 		if (vpssm3_notify_va != 0) {
+                        if ( vpssm3_notify_va == 0x8DB00000 ) {
+                                printk ( "Fixup vpssm3_notify_va: 0x%x=>0x%x\n",
+                                         vpssm3_notify_va,
+                                         EZSDK_5_02_VPSSM3_VA_DEFAULT );
+                                vpssm3_notify_va = EZSDK_5_02_VPSSM3_VA_DEFAULT;
+                        }
 			i = multiproc_get_id("VPSS-M3");
 			list[2]->map_index = i;
 			notify_map_info[i].actualAddress = vpssm3_notify_va;

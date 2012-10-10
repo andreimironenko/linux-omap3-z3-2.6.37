@@ -278,6 +278,24 @@ config VIDEO_ADV7180
 	  To compile this driver as a module, choose M here: the
 	  module will be called adv7180.
 
+config VIDEO_ADV9880
+	tristate "Analog Devices AD9880 video decoder"
+	depends on VIDEO_V4L2 && I2C
+	help
+	  Support for I2C bus based Analog Devices AD9880 configuration.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called adv9880.
+
+config VIDEO_ADV7611
+	tristate "Analog Devices AD7611 video decoder"
+	depends on VIDEO_V4L2 && I2C
+	help
+	  Support for I2C bus based Analog Devices AD7611 configuration.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called adv7611.
+
 config VIDEO_BT819
 	tristate "BT819A VideoStream decoder"
 	depends on VIDEO_V4L2 && I2C
@@ -304,6 +322,24 @@ config VIDEO_BT866
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called bt866.
+
+config VIDEO_GV7601
+	tristate "Gennum GV7601 SDI receiver"
+	depends on VIDEO_V4L2 && SPI
+	help
+	  Support for SPI bus based Gennum 7601 SDI receiver configuration.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gv7601.
+
+config VIDEO_GV7600
+	tristate "Gennum GV7600 SDI transmitter"
+	depends on VIDEO_V4L2 && SPI
+	help
+	  Support for SPI bus based Gennum 7600 SDI receiver configuration.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gv7600.
 
 config VIDEO_KS0127
 	tristate "KS0127 video decoder"
@@ -572,8 +608,8 @@ config VIDEO_VIU
 config VIDEO_VIVI
 	tristate "Virtual Video Driver"
 	depends on VIDEO_DEV && VIDEO_V4L2 && !SPARC32 && !SPARC64
-	depends on FRAMEBUFFER_CONSOLE || STI_CONSOLE
-	select FONT_8x16
+	# depends on FRAMEBUFFER_CONSOLE || STI_CONSOLE
+	# select FONT_8x16
 	select VIDEOBUF_VMALLOC
 	default n
 	---help---
@@ -588,6 +624,13 @@ source "drivers/media/video/davinci/Kconfig"
 source "drivers/media/video/omap/Kconfig"
 source "drivers/media/video/ti81xx/Kconfig"
 source "drivers/media/video/bt8xx/Kconfig"
+
+config VIDEO_Z3_NETRA
+	tristate "Z3 A8-based video decoder for OpenMAX"
+	depends on ARCH_TI81XX
+	default m
+	---help---
+	  Z3 driver for video autodetect in OpenMAX
 
 config VIDEO_PMS
 	tristate "Mediavision Pro Movie Studio Video For Linux"

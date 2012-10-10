@@ -30,6 +30,13 @@
 #else
 #include <plat/asp.h>
 #include <asm/hardware/edma.h>
+
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#include <mach/z3_fpga.h>
+#include <mach/z3_app.h>
+#include <linux/reboot.h>
+#endif
+
 #endif
 
 #include "../codecs/tlv320aic3x.h"
@@ -67,6 +74,13 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 				machine_is_dm385evm())
 		sysclk = 24576000;
 
+        else if ( machine_is_ti8148evm() ) {
+#if defined(CONFIG_MACH_Z3_DM814X_MOD)
+		sysclk = 31250000;
+#else
+		sysclk = 24576000;
+#endif
+        }
 	else
 		return -EINVAL;
 
@@ -88,6 +102,58 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+static int evm_sdi_out_hw_params(struct snd_pcm_substream *substream,
+                                 struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+
+        unsigned int codec_slave_format = (SND_SOC_DAIFMT_I2S |      
+                                           SND_SOC_DAIFMT_CBS_CFS | 
+                                           SND_SOC_DAIFMT_NB_NF);
+
+	int ret = 0;
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, codec_slave_format);
+	if (ret < 0)
+		return ret;
+
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, codec_slave_format);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+static int evm_sdi_in_hw_params(struct snd_pcm_substream *substream,
+                                 struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+
+        unsigned int codec_slave_format = (SND_SOC_DAIFMT_RIGHT_J |      
+                                           SND_SOC_DAIFMT_CBM_CFM | 
+                                           SND_SOC_DAIFMT_NB_NF);
+
+	int ret = 0;
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, codec_slave_format);
+	if (ret < 0)
+		return ret;
+
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, codec_slave_format);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 static int evm_spdif_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
@@ -98,12 +164,76 @@ static int evm_spdif_hw_params(struct snd_pcm_substream *substream,
 	return snd_soc_dai_set_fmt(cpu_dai, AUDIO_FORMAT);
 }
 
+static int evm_ext_master_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+        int ret=0;
+        unsigned int ext_master_format = (SND_SOC_DAIFMT_I2S |      
+                                          SND_SOC_DAIFMT_CBM_CFM | 
+                                          SND_SOC_DAIFMT_NB_NF);
+
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, ext_master_format);
+	if (ret < 0)
+		return ret;
+
+	/* set cpu DAI configuration */
+	ret= snd_soc_dai_set_fmt(cpu_dai, ext_master_format);
+
+        return ret;
+}
+
+static int evm_codec_slave_ext_master_hw_params(struct snd_pcm_substream *substream,
+                                        struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+        int ret=0;
+        unsigned int codec_format = (SND_SOC_DAIFMT_I2S |      
+                                     SND_SOC_DAIFMT_CBS_CFS | 
+                                     SND_SOC_DAIFMT_NB_NF);
+        unsigned int ext_master_format = (SND_SOC_DAIFMT_I2S |      
+                                          SND_SOC_DAIFMT_CBM_CFM | 
+                                          SND_SOC_DAIFMT_NB_NF);
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, codec_format);
+	if (ret < 0)
+		return ret;
+
+	/* set cpu DAI configuration */
+	ret= snd_soc_dai_set_fmt(cpu_dai, ext_master_format);
+
+        return ret;
+}
+
 static struct snd_soc_ops evm_ops = {
 	.hw_params = evm_hw_params,
 };
 
+static struct snd_soc_ops evm_sdi_out_ops = {
+	.hw_params = evm_sdi_out_hw_params,
+};
+
+static struct snd_soc_ops evm_sdi_in_ops = {
+	.hw_params = evm_sdi_in_hw_params,
+};
+
 static struct snd_soc_ops evm_spdif_ops = {
 	.hw_params = evm_spdif_hw_params,
+};
+
+static struct snd_soc_ops evm_ext_master_ops = {
+	.hw_params = evm_ext_master_hw_params,
+};
+
+static struct snd_soc_ops evm_switch_ops = {
+	.hw_params = evm_hw_params, /* may be changed at init time */ 
 };
 
 /* davinci-evm machine dapm widgets */
@@ -162,6 +292,29 @@ static int evm_aic3x_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_sync(codec);
 
 	return 0;
+}
+
+static int evm_aic3x_2nd_init(struct snd_soc_pcm_runtime *rtd)
+{
+        return 0;
+}
+
+/* Logic for a adv7611 aic3x as connected on a davinci-evm */
+static int evm_adv7611_init(struct snd_soc_pcm_runtime *rtd)
+{
+        return 0;
+}
+
+/* Logic for a gv7601 aic3x as connected on a davinci-evm */
+static int evm_gv7601_init(struct snd_soc_pcm_runtime *rtd)
+{
+        return 0;
+}
+
+/* Logic for a gv7600 as connected on a davinci-evm */
+static int evm_gv7600_init(struct snd_soc_pcm_runtime *rtd)
+{
+        return 0;
 }
 
 /* davinci-evm digital audio interface glue - connects codec <--> CPU */
@@ -238,16 +391,25 @@ static struct snd_soc_dai_link da8xx_evm_dai = {
 	.ops = &evm_ops,
 };
 
+
 static struct snd_soc_dai_link ti81xx_evm_dai[] = {
 	{
 		.name = "TLV320AIC3X",
 		.stream_name = "AIC3X",
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+        .cpu_dai_name= "davinci-mcasp.2",
+#endif
 		.codec_dai_name = "tlv320aic3x-hifi",
 		.codec_name = "tlv320aic3x-codec.1-0018",
 		.platform_name = "davinci-pcm-audio",
 		.init = evm_aic3x_init,
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 		.ops = &evm_ops,
+#else
+        .ops = &evm_switch_ops, // may be master or slave
+#endif
 	},
+	
 #ifdef CONFIG_SND_SOC_TI81XX_HDMI
 	{
 		.name = "HDMI_SOC_LINK",
@@ -259,6 +421,89 @@ static struct snd_soc_dai_link ti81xx_evm_dai[] = {
 	},
 #endif
 };
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+static struct snd_soc_dai_link z3_dm81xx_app_02_dai[] = {
+        {
+                .name = "TLV320AIC3X_2",
+                .stream_name = "AIC3X_2",
+                .cpu_dai_name= "davinci-mcasp.1",
+                .codec_dai_name = "tlv320aic3x-hifi",
+                .codec_name = "tlv320aic3x-codec.2-0018",
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_aic3x_2nd_init,
+                .ops = &evm_ops,
+        },
+#if (defined(CONFIG_VIDEO_ADV7611) || defined(CONFIG_VIDEO_ADV7611_MODULE))
+        {
+                .name = "ADV7611_SOUND",
+                .stream_name = "ADV7611",
+                .cpu_dai_name= "davinci-mcasp.0",
+                .codec_dai_name = "adv7611-hifi",
+                .codec_name = "adv7611-sound.1",
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_adv7611_init,
+                .ops = &evm_ext_master_ops,
+        },
+        {
+                .name = "ADV7611_SOUND_2",
+                .stream_name = "ADV7611_2",
+                .cpu_dai_name= "davinci-mcasp.1",
+                .codec_dai_name = "adv7611-hifi",
+                .codec_name = "adv7611-sound.2",
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_adv7611_init,
+                .ops = &evm_ext_master_ops,
+        },
+#endif
+};
+
+static struct snd_soc_dai_link z3_dm81xx_app_32_dai[] = {
+        {
+                .name = "ADV7611_SOUND",
+                .stream_name = "ADV7611",
+                .cpu_dai_name= "davinci-mcasp.2",
+                .codec_dai_name = "adv7611-hifi",
+                .codec_name = "adv7611-sound.1", // distinguish by I2C address?
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_adv7611_init,
+                .ops = &evm_ext_master_ops,
+        },
+        {
+                .name = "GV7601_SOUND",
+                .stream_name = "GV7601",
+                .cpu_dai_name= "davinci-mcasp.0",
+                .codec_dai_name = "gv7601-hifi",
+                .codec_name = "gv7601-sound", // distinguish by I2C address?
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_gv7601_init,
+                .ops = &evm_sdi_in_ops,
+        },
+        {
+                .name = "GV7600_SOUND",
+                .stream_name = "GV7600",
+                .cpu_dai_name= "davinci-mcasp.1",
+                .codec_dai_name = "gv7600-hifi",
+                .codec_name = "gv7600-sound", // distinguish by I2C address?
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_gv7600_init,
+                .ops = &evm_sdi_out_ops,
+        },
+};
+
+static struct snd_soc_dai_link z3_dm81xx_app_22_dai[] = {
+        {
+                .name = "ADV7611_SOUND",
+                .stream_name = "ADV7611",
+                .cpu_dai_name= "davinci-mcasp.0",
+                .codec_dai_name = "adv7611-hifi",
+                .codec_name = "adv7611-sound.1",
+                .platform_name = "davinci-pcm-audio",
+                .init = evm_adv7611_init,
+                .ops = &evm_ext_master_ops,
+        },
+};
+
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
 
 /* davinci dm6446 evm audio machine driver */
 static struct snd_soc_card dm6446_snd_soc_card_evm = {
@@ -306,8 +551,29 @@ static struct snd_soc_card ti81xx_snd_soc_card = {
 	.num_links = ARRAY_SIZE(ti81xx_evm_dai),
 };
 
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+static struct snd_soc_card z3_dm81xx_app_02_snd_soc_card = {
+        .name = "APP02",
+        .dai_link = z3_dm81xx_app_02_dai,
+        .num_links = ARRAY_SIZE(z3_dm81xx_app_02_dai),
+};
+
+static struct snd_soc_card z3_dm81xx_app_32_snd_soc_card = {
+        .name = "APP32",
+        .dai_link = z3_dm81xx_app_32_dai,
+        .num_links = ARRAY_SIZE(z3_dm81xx_app_32_dai),
+};
+
+static struct snd_soc_card z3_dm81xx_app_22_snd_soc_card = {
+        .name = "APP22",
+        .dai_link = z3_dm81xx_app_22_dai,
+        .num_links = ARRAY_SIZE(z3_dm81xx_app_22_dai),
+};
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
 static void ti81xx_evm_dai_fixup(void)
 {
+#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	if (machine_is_ti8168evm() || machine_is_ti8148evm()) {
 		ti81xx_evm_dai[0].cpu_dai_name = "davinci-mcasp.2";
 	} else if (machine_is_dm385evm()) {
@@ -315,6 +581,23 @@ static void ti81xx_evm_dai_fixup(void)
 	} else {
 		ti81xx_evm_dai[0].cpu_dai_name = NULL;
 	}
+#else
+ int i;
+
+	if (machine_is_ti8168evm()) {
+        } else if (machine_is_ti8148evm()) {
+                for (i=0; i<ARRAY_SIZE(z3_dm81xx_app_02_dai); i++ ) {
+                        if (!strcmp( z3_dm81xx_app_02_dai[i].name, "TLV320AIC3X_2" ) ) {
+                                z3_dm81xx_app_02_dai[i].codec_name = "tlv320aic3x-codec.3-0018";
+                        }
+                }
+	} else if (machine_is_dm385evm()) {
+		ti81xx_evm_dai[0].cpu_dai_name = "davinci-mcasp.1";
+//	} else {
+//		ti81xx_evm_dai[0].cpu_dai_name = NULL;
+	}
+#endif	!defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+	
 }
 
 static struct platform_device *evm_snd_device;
@@ -323,6 +606,14 @@ static int __init evm_init(void)
 	struct snd_soc_card *evm_snd_dev_data;
 	int index;
 	int ret;
+#if	defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+#ifdef CONFIG_ARCH_TI81XX
+        int board_id = z3_fpga_board_id() ;
+#endif
+
+    printk( KERN_DEBUG "ALSA init: board_id=%u\n", board_id );
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
 
 	if (machine_is_davinci_evm()) {
 		evm_snd_dev_data = &dm6446_snd_soc_card_evm;
@@ -347,6 +638,19 @@ static int __init evm_init(void)
 		ti81xx_evm_dai_fixup();
 		evm_snd_dev_data = &ti81xx_snd_soc_card;
 		index = 0;
+#if	defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+switch ( board_id )  {
+                case Z3_BOARD_ID_APP_31:
+                        /* Slave on-board PCM when sample rate generator is supported */
+                        evm_switch_ops.hw_params = evm_codec_slave_ext_master_hw_params;
+                        z3_fpga_set_aic_ext_master(1);
+                        break;
+                default:
+                        break;
+                                
+                }
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
 	} else
 		return -EINVAL;
 
@@ -359,6 +663,42 @@ static int __init evm_init(void)
 	if (ret)
 		platform_device_put(evm_snd_device);
 
+#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+ if (machine_is_ti8168evm() || machine_is_ti8148evm()) {
+#ifdef CONFIG_ARCH_TI81XX
+                evm_snd_dev_data = NULL;
+                
+                switch ( board_id )  {
+                case Z3_BOARD_ID_APP_02:
+                        evm_snd_dev_data = &z3_dm81xx_app_02_snd_soc_card;
+                        break;
+                case Z3_BOARD_ID_APP_21:
+                        evm_snd_dev_data = &z3_dm81xx_app_22_snd_soc_card;
+                        break;
+                case Z3_BOARD_ID_APP_31:
+                        evm_snd_dev_data = &z3_dm81xx_app_32_snd_soc_card;
+                        break;
+                default:
+                        break;
+                                
+                }
+
+                if ( NULL != evm_snd_dev_data ) {
+                        ++index;
+                        evm_snd_device = platform_device_alloc("soc-audio", index);
+                        if (!evm_snd_device)
+                                return -ENOMEM;
+                        
+                        platform_set_drvdata(evm_snd_device, evm_snd_dev_data);
+                        ret = platform_device_add(evm_snd_device);
+                        if (ret)
+                                platform_device_put(evm_snd_device);
+                        
+                }
+#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+	}
+#endif
 	return ret;
 }
 

@@ -318,3 +318,19 @@ config SND_SOC_WM2000
 
 config SND_SOC_WM9090
 	tristate
+
+config SND_SOC_ADV7611
+        tristate "ADV7611 HDMI receiver audio"
+	default y if VIDEO_ADV7611=y
+	default m if VIDEO_ADV7611=m
+
+config SND_SOC_GV7601
+        tristate "GV7601 SDI receiver audio"
+	default y if VIDEO_GV7601=y
+	default m if VIDEO_GV7601=m
+
+config SND_SOC_GV7600
+        tristate "GV7600 SDI receiver audio"
+	default y if VIDEO_GV7600=y
+	default m if VIDEO_GV7600=m
+

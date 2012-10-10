@@ -59,6 +59,7 @@ struct omap_chip_id {
  */
 unsigned int omap_rev(void);
 
+
 /*
  * Define CPU revision bits
  *
@@ -522,5 +523,20 @@ OMAP3_HAS_FEATURE(192mhz_clk, 192MHZ_CLK)
 OMAP3_HAS_FEATURE(io_wakeup, IO_WAKEUP)
 OMAP3_HAS_FEATURE(720mhz, 720MHZ)
 OMAP3_HAS_FEATURE(dsp, DSP)
+
+/*
+ * Runtime detection of TI81XX features
+ */
+extern u32 ti81xx_features;
+
+#define TI81XX_HAS_TPPSS		(BIT(14)|BIT(13)|BIT(12))
+
+#define TI81XX_HAS_FEATURE(feat,flag)			\
+static inline unsigned int ti81xx_has_ ##feat(void)	\
+{							\
+	return (ti81xx_features & TI81XX_HAS_ ##flag);	\
+}							\
+
+TI81XX_HAS_FEATURE(tppss, TPPSS)
 
 #endif

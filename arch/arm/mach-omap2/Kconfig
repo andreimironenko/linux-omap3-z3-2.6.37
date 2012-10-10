@@ -323,12 +323,12 @@ comment "TI81XX Board Type"
 
 config MACH_TI8148EVM
 	bool "TI8148 Evaluation Module"
-	default y
+	default n
 	depends on ARCH_TI814X
 
 config MACH_DM385EVM
 	bool "DM385 Evaluation Module"
-	default y
+	default n
 	depends on ARCH_TI814X
 
 config TI8148EVM_WL12XX
@@ -344,8 +344,19 @@ config TI8148EVM_WL12XX
 
 config MACH_TI8168EVM
 	bool "TI8168 Evaluation Module"
-	default y
+	default n
 	depends on ARCH_TI816X
+
+config MACH_Z3_816X_MOD
+       bool "Z3 Technology DM816X-MOD"
+       default n
+       depends on ARCH_TI816X
+
+config MACH_Z3_814X_MOD
+       bool "Z3 Technology DM814X-MOD"
+       default n
+       depends on ARCH_TI814X
+
 
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
