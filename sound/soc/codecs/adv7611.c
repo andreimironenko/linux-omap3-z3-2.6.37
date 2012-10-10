@@ -12,7 +12,11 @@
 #include <sound/soc.h>
 #include <sound/pcm.h>
 #include <sound/initval.h>
+#include <asm/mach-types.h>
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod() 
 #include <mach/z3_fpga.h>
+#endif
 
 MODULE_LICENSE("GPL");
 
@@ -27,13 +31,13 @@ static int adv7611_sound_hw_params(struct snd_pcm_substream *substream,
                                    struct snd_pcm_hw_params *params,
                                    struct snd_soc_dai *dai)
 {
-        /* This is where we need to drive the digital bus, 
-           when we are sharing the bus with another codec
-         */
-
+  /* This is where we need to drive the digital bus, 
+     when we are sharing the bus with another codec
+   */
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
         z3_fpga_set_aic_disable( 1 );
-
-        return 0;
+#endif
+    return 0;
 }
 
 static int adv7611_sound_set_dai_fmt(struct snd_soc_dai *codec_dai,

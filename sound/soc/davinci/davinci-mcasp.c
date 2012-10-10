@@ -771,8 +771,8 @@ switch (fmt & (SND_SOC_DAIFMT_FORMAT_MASK ) ) {
                 mcasp_mod_bits(dev->base + DAVINCI_MCASP_RXFMT_REG, FSRDLY(0), FSRDLY(0x3));
                 mcasp_mod_bits(dev->base + DAVINCI_MCASP_TXFMT_REG, FSXDLY(0), FSXDLY(0x3));
                 break;
-#endif //machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 	}
+#endif //machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 
 	return 0;
 }

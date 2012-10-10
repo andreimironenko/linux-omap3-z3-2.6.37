@@ -664,7 +664,10 @@ switch ( board_id )  {
 	if (ret)
 		platform_device_put(evm_snd_device);
 
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
  if (machine_is_z3_816x_mod() || machine_is_z3_814x_mod()) {
+
 #ifdef CONFIG_ARCH_TI81XX
                 evm_snd_dev_data = NULL;
                 
@@ -696,7 +699,9 @@ switch ( board_id )  {
                         
                 }
 	}
-#endif
+#endif //#ifdef CONFIG_ARCH_TI81XX
+
+#endif //#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 	return ret;
 }
 

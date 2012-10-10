@@ -24,6 +24,7 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-chip-ident.h>
 #include <asm/uaccess.h>
+#include <asm/mach-types.h>
 
 #include "gv7601.h"
 
@@ -856,17 +857,20 @@ static int gv7601_querystd(struct v4l2_subdev *sd, v4l2_std_id *id)
           gv7601_write_register( spi,
                                  GV7601_REG_ANC_CONFIG,
                                  2 );
-
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
           z3_fpga_si_20bit( 0 );
+#endif
           break;
 
      default:
           dev_dbg( &spi->dev, "Set HD-SDI input, 16-bits width\n");
-//          dec_device->if_type = INTERFACE_TYPE_BT1120;
+//        dec_device->if_type = INTERFACE_TYPE_BT1120;
           gv7601_write_register( spi,
                                  GV7601_REG_ANC_CONFIG,
                                  0 );
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
           z3_fpga_si_20bit( 1 );
+#endif
           break;
      }
 
