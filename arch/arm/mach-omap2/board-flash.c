@@ -23,6 +23,8 @@
 #include <plat/onenand.h>
 #include <plat/tc.h>
 
+#include <asm/mach-types.h>
+
 #include "board-flash.h"
 
 #define REG_FPGA_REV			0x10
@@ -182,7 +184,7 @@ __init board_nand_init(struct mtd_partition *nand_parts,
 		board_nand_data.gpmc_t = NULL;
 
 	if (cpu_is_ti81xx()) {
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 		board_nand_data.devsize = 0;
 		board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_DEFAULT;
 #else

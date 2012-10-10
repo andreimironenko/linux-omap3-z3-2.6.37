@@ -56,8 +56,8 @@ struct snd_platform_data {
 	u8 version;
 	u8 txnumevt;
 	u8 rxnumevt;
-        
-        u8 rrot_nibbles; /* additional right rotate (units of nibbles) */
+
+	u8 rrot_nibbles; /* additional right rotate (units of nibbles) */
 };
 
 enum {

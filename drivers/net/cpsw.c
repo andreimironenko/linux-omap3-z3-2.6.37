@@ -30,6 +30,8 @@
 #include <linux/cpsw.h>
 #include <linux/net_switch_config.h>
 
+#include <asm/mach-types.h>
+
 #include "cpsw_ale.h"
 #include "davinci_cpdma.h"
 
@@ -770,7 +772,8 @@ static void _cpsw_adjust_link(struct cpsw_slave *slave,
 		if (phy->speed == 10)
 			mac_control |= BIT(18);
 		else if (phy->speed == 1000)
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
         mac_control |= BIT(7);	/* GIGABITEN	*/
 #else
 /* GIGABITEN | FORCE_GIG to ignore MTCLK on Z3 board */

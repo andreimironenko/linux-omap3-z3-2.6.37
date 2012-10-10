@@ -36,8 +36,9 @@
 #include <linux/slab.h>
 
 #include <linux/vmalloc.h>
+#include <asm/mach-types.h>
 
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 #include <mach/board-ti814x.h>
 #endif
 #include "core.h"
@@ -156,7 +157,7 @@ static int __init vps_init(void)
 	
 	VPSSDBG("core init\n");
 
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) 
+#if !machine_is_z3_816x_mod()
         /* This mux is for configuring the pixel clock to Venc through HDMI or PLL*/
         reg_base = (u32)ioremap(TI814x_HDMI_MUX_ADDR, 0x10);
         reg_value = __raw_readl(reg_base);

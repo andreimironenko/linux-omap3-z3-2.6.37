@@ -34,6 +34,7 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-chip-ident.h>
 #include <media/davinci/videohd.h> // For HD std (V4L2_STD_1080I, etc)
+
 #include <asm/uaccess.h>
 #if defined(CONFIG_DAVINCI_DM368_FPGA)
 #include <asm/arch/dm368_fpga.h>

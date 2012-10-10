@@ -34,6 +34,7 @@
 #include <linux/uaccess.h>
 
 #include <asm/system.h>
+#include <asm/mach-types.h>
 
 #include <plat/omap_hwmod.h>
 
@@ -586,7 +587,7 @@ static ssize_t omap_mux_dbg_signal_write(struct file *file,
 	if (ret < 0)
 		return ret;
 		
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 
 if (val > 0xffff)
 		return -EINVAL;

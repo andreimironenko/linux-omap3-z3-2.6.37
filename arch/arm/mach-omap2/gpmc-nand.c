@@ -15,6 +15,7 @@
 #include <linux/mtd/nand.h>
 
 #include <asm/mach/flash.h>
+#include <asm/mach-types.h>
 
 #include <plat/nand.h>
 #include <plat/board.h>
@@ -41,8 +42,7 @@ static int omap2_nand_gpmc_retime(void)
 	if (!gpmc_nand_data->gpmc_t)
 		return 0;
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
-
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
         printk( KERN_DEBUG "omap2_nand_gpmc_retime: Disabled by Z3\n" );
 #else
 	memset(&t, 0, sizeof(t));
@@ -83,7 +83,8 @@ static int omap2_nand_gpmc_retime(void)
 	err = gpmc_cs_set_timings(gpmc_nand_data->cs, &t);
 	if (err)
 		return err;
-#endif
+#endif //machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
+
 	return 0;
 }
 

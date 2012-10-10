@@ -29,15 +29,13 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
-#include <asm/mach-types.h>
+#include "davinci-pcm.h"
+#include "davinci-mcasp.h"
 
 #if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 #include <mach/z3_fpga.h>
 #include <mach/z3_app.h>
 #endif
-
-#include "davinci-pcm.h"
-#include "davinci-mcasp.h"
 
 /*
  * McASP register definitions

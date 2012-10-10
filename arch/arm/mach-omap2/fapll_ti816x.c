@@ -22,7 +22,9 @@
 #include <linux/err.h>
 #include <linux/list.h>
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#include <asm/mach-types.h>
+
+#if machine_is_z3_816x_mod()
 #include <linux/time.h>
 #endif
 
@@ -43,7 +45,7 @@
 
 #define MAX_FAPLL_WAIT_TRIES		1000
 
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod()
 #define	ROUNDING_DIVIDER		1000
 #else
 #undef ROUNDING_DIVIDER		1000

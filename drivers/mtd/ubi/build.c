@@ -44,6 +44,8 @@
 #include <linux/kthread.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
+
+#include <asm/mach-types.h>
 #include "ubi.h"
 
 /* Maximum length of the 'mtd=' parameter */
@@ -673,7 +675,7 @@ static int io_init(struct ubi_device *ubi)
 	}
 
 	ubi->min_io_size = ubi->mtd->writesize;
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 	ubi->hdrs_min_io_size = ubi->mtd->writesize >> ubi->mtd->subpage_sft;
 #else
     ubi->hdrs_min_io_size = ubi->mtd->writesize;

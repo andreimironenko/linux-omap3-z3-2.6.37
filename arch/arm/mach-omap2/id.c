@@ -20,6 +20,7 @@
 #include <linux/io.h>
 
 #include <asm/cputype.h>
+#include <asm/mach-types.h>
 
 #include <plat/common.h>
 #include <plat/cpu.h>
@@ -405,12 +406,12 @@ void __init ti81xx_check_revision(void)
 			strcpy(cpu_rev, "2.0");
 		}
 
-                if ( ti81xx_has_tppss() ) {
-		omap3_features |= OMAP3_HAS_DSP;
-                        pr_info("OMAP chip is TI8169 %s\n", cpu_rev);
-                } else {
-                        pr_info("OMAP chip is TI8168 %s\n", cpu_rev);
-                }
+		if ( ti81xx_has_tppss() ) {
+			omap3_features |= OMAP3_HAS_DSP;
+			pr_info("OMAP chip is TI8169 %s\n", cpu_rev);
+		} else {
+			pr_info("OMAP chip is TI8168 %s\n", cpu_rev);
+		}
 		return;
 	} else if ((partnum == 0xb8f2)) {
 		omap_chip.oc |= CHIP_IS_TI814X;

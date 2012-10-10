@@ -50,7 +50,10 @@
 #include <sound/initval.h>
 #include <sound/tlv.h>
 #include <sound/tlv320aic3x.h>
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+#include <asm/mach-types.h>
+
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 #include <mach/z3_fpga.h>
 #endif
 
@@ -820,7 +823,7 @@ static int aic3x_hw_params(struct snd_pcm_substream *substream,
 	u8 reg;
 	int clk;
 	
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
  int ret;
 
         if ( z3_fpga_get_aic_ext_master( ) ) {
@@ -1068,7 +1071,7 @@ static int aic3x_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 static void aic3x_pcm_shutdown(struct snd_pcm_substream *substream,
                                struct snd_soc_dai *dai)
 {
@@ -1277,7 +1280,7 @@ static struct snd_soc_dai_ops aic3x_dai_ops = {
 	.digital_mute	= aic3x_mute,
 	.set_sysclk	= aic3x_set_dai_sysclk,
 	.set_fmt	= aic3x_set_dai_fmt,
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
     .shutdown       = aic3x_pcm_shutdown,
 #endif
 };

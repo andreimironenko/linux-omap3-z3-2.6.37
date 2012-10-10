@@ -169,6 +169,7 @@ int ti814x_pcf8575_exit(void)
 	i2c_del_driver(&pcf8575_driver);
 	return 0;
 }
+
 EXPORT_SYMBOL(ti814x_pcf8575_exit);
 #define VPS_VC_IO_EXP_RESET_DEV_MASK        (0x0Fu)
 #define VPS_VC_IO_EXP_SEL_VIN0_S1_MASK      (0x04u)
@@ -177,6 +178,7 @@ EXPORT_SYMBOL(ti814x_pcf8575_exit);
 #define VPS_VC_IO_EXP_THS7368_FILTER1_MASK  (0x40u)
 #define VPS_VC_IO_EXP_THS7368_FILTER2_MASK  (0x80u)
 #define VPS_VC_IO_EXP_THS7368_FILTER_SHIFT  (0x06u)
+
 int vps_ti814x_select_video_decoder(int vid_decoder_id)
 {
 	int ret = 0;

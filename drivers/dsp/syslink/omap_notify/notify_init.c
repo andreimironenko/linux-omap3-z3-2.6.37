@@ -76,7 +76,7 @@
 #define IOPAGE_MASK     IOPTE_MASK
 
 /* notify slave virtual address of dsp*/
-static  int  dsp_notify_va ;
+static  int  dsp_notify_va = EZSDK_5_02_VPSSM3_VA_DEFAULT;
 module_param_named(dsp_sva, dsp_notify_va, int,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(dsp_notify_va, "Specify the slave virtual address where the "

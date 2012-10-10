@@ -31,7 +31,7 @@
 #include <plat/asp.h>
 #include <asm/hardware/edma.h>
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 #include <mach/z3_fpga.h>
 #include <mach/z3_app.h>
 #include <linux/reboot.h>
@@ -75,7 +75,8 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 		sysclk = 24576000;
 
         else if ( machine_is_ti8148evm() ) {
-#if defined(CONFIG_MACH_Z3_DM814X_MOD)
+
+#if machine_is_z3_814x_mod()
 		sysclk = 31250000;
 #else
 		sysclk = 24576000;
@@ -396,14 +397,14 @@ static struct snd_soc_dai_link ti81xx_evm_dai[] = {
 	{
 		.name = "TLV320AIC3X",
 		.stream_name = "AIC3X",
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
         .cpu_dai_name= "davinci-mcasp.2",
 #endif
 		.codec_dai_name = "tlv320aic3x-hifi",
 		.codec_name = "tlv320aic3x-codec.1-0018",
 		.platform_name = "davinci-pcm-audio",
 		.init = evm_aic3x_init,
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 		.ops = &evm_ops,
 #else
         .ops = &evm_switch_ops, // may be master or slave
@@ -421,7 +422,7 @@ static struct snd_soc_dai_link ti81xx_evm_dai[] = {
 	},
 #endif
 };
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 static struct snd_soc_dai_link z3_dm81xx_app_02_dai[] = {
         {
                 .name = "TLV320AIC3X_2",
@@ -551,7 +552,7 @@ static struct snd_soc_card ti81xx_snd_soc_card = {
 	.num_links = ARRAY_SIZE(ti81xx_evm_dai),
 };
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 static struct snd_soc_card z3_dm81xx_app_02_snd_soc_card = {
         .name = "APP02",
         .dai_link = z3_dm81xx_app_02_dai,
@@ -573,7 +574,7 @@ static struct snd_soc_card z3_dm81xx_app_22_snd_soc_card = {
 
 static void ti81xx_evm_dai_fixup(void)
 {
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 	if (machine_is_ti8168evm() || machine_is_ti8148evm()) {
 		ti81xx_evm_dai[0].cpu_dai_name = "davinci-mcasp.2";
 	} else if (machine_is_dm385evm()) {
@@ -596,7 +597,7 @@ static void ti81xx_evm_dai_fixup(void)
 //	} else {
 //		ti81xx_evm_dai[0].cpu_dai_name = NULL;
 	}
-#endif	!defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#endif	//!defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
 	
 }
 
@@ -606,7 +607,7 @@ static int __init evm_init(void)
 	struct snd_soc_card *evm_snd_dev_data;
 	int index;
 	int ret;
-#if	defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 
 #ifdef CONFIG_ARCH_TI81XX
         int board_id = z3_fpga_board_id() ;
@@ -638,7 +639,7 @@ static int __init evm_init(void)
 		ti81xx_evm_dai_fixup();
 		evm_snd_dev_data = &ti81xx_snd_soc_card;
 		index = 0;
-#if	defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if machine_is_z3_816x_mod() || machine_is_z3_814x_mod()
 switch ( board_id )  {
                 case Z3_BOARD_ID_APP_31:
                         /* Slave on-board PCM when sample rate generator is supported */
@@ -663,8 +664,7 @@ switch ( board_id )  {
 	if (ret)
 		platform_device_put(evm_snd_device);
 
-#if defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
- if (machine_is_ti8168evm() || machine_is_ti8148evm()) {
+ if (machine_is_z3_816x_mod() || machine_is_z3_814x_mod()) {
 #ifdef CONFIG_ARCH_TI81XX
                 evm_snd_dev_data = NULL;
                 
@@ -695,8 +695,6 @@ switch ( board_id )  {
                                 platform_device_put(evm_snd_device);
                         
                 }
-#endif //defined(CONFIG_MACH_Z3_DM816X_MOD) || defined(CONFIG_MACH_Z3_DM814X_MOD)
-
 	}
 #endif
 	return ret;

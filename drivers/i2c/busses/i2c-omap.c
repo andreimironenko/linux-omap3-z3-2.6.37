@@ -337,215 +337,215 @@ static int omap_i2c_init(struct omap_i2c_dev *dev)
         u16 reg;
         int cyclecnt;
 
-	if (dev->rev >= OMAP_I2C_REV_2) {
-                
-		/* Disable I2C controller before soft reset */
-		omap_i2c_write_reg(dev, OMAP_I2C_CON_REG,
-			omap_i2c_read_reg(dev, OMAP_I2C_CON_REG) &
-				~(OMAP_I2C_CON_EN));
+        if (dev->rev >= OMAP_I2C_REV_2) {
 
-                if ( 1 )
-                {
-                        dev_dbg(dev->dev,
-                                "Begin bus recovery procedure\n" );
+        	/* Disable I2C controller before soft reset */
+        	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG,
+        			omap_i2c_read_reg(dev, OMAP_I2C_CON_REG) &
+        			~(OMAP_I2C_CON_EN));
 
-                        reg = OMAP_I2C_SYSTEST_ST_EN
-                                | OMAP_I2C_SYSTEST_FREE
-                                | ((3)<<OMAP_I2C_SYSTEST_TMODE_SHIFT)
-                                | OMAP_I2C_SYSTEST_SDA_O;
+        	if ( 1 )
+        	{
+        		dev_dbg(dev->dev,
+        				"Begin bus recovery procedure\n" );
 
-                        omap_i2c_write_reg( dev, 
-                                            OMAP_I2C_SYSTEST_REG,
-                                            reg );
-                        udelay(100);
+        		reg = OMAP_I2C_SYSTEST_ST_EN
+        				| OMAP_I2C_SYSTEST_FREE
+        				| ((3)<<OMAP_I2C_SYSTEST_TMODE_SHIFT)
+        				| OMAP_I2C_SYSTEST_SDA_O;
 
-                        for ( cyclecnt=0; cyclecnt < 20; cyclecnt++ ) {
-                                reg &= ~OMAP_I2C_SYSTEST_SCL_O;
-                                omap_i2c_write_reg( dev, 
-                                                    OMAP_I2C_SYSTEST_REG,
-                                                    reg );
-                                udelay(100);
+        		omap_i2c_write_reg( dev,
+        				OMAP_I2C_SYSTEST_REG,
+        				reg );
+        		udelay(100);
 
-                                reg |= OMAP_I2C_SYSTEST_SCL_O;
-                                omap_i2c_write_reg( dev, 
-                                                    OMAP_I2C_SYSTEST_REG,
-                                                    reg );
-                                udelay(100);
-                        }
+        		for ( cyclecnt=0; cyclecnt < 20; cyclecnt++ ) {
+        			reg &= ~OMAP_I2C_SYSTEST_SCL_O;
+        			omap_i2c_write_reg( dev,
+        					OMAP_I2C_SYSTEST_REG,
+        					reg );
+        			udelay(100);
 
-                        reg = OMAP_I2C_SYSTEST_SDA_O;
+        			reg |= OMAP_I2C_SYSTEST_SCL_O;
+        			omap_i2c_write_reg( dev,
+        					OMAP_I2C_SYSTEST_REG,
+        					reg );
+        			udelay(100);
+        		}
 
-                        omap_i2c_write_reg( dev, 
-                                            OMAP_I2C_SYSTEST_REG,
-                                            reg );
+        		reg = OMAP_I2C_SYSTEST_SDA_O;
 
-                        dev_dbg(dev->dev,
-                                "End bus recovery procedure\n" );
-                }
+        		omap_i2c_write_reg( dev,
+        				OMAP_I2C_SYSTEST_REG,
+        				reg );
 
-
-		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, SYSC_SOFTRESET_MASK);
-		/* For some reason we need to set the EN bit before the
-		 * reset done bit gets set. */
-		timeout = jiffies + OMAP_I2C_TIMEOUT;
-		omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
-		while (!(omap_i2c_read_reg(dev, OMAP_I2C_SYSS_REG) &
-			 SYSS_RESETDONE_MASK)) {
-			if (time_after(jiffies, timeout)) {
-				dev_warn(dev->dev, "timeout waiting "
-						"for controller reset\n");
-				return -ETIMEDOUT;
-			}
-			msleep(1);
-		}
+        		dev_dbg(dev->dev,
+        				"End bus recovery procedure\n" );
+        	}
 
 
-		/* SYSC register is cleared by the reset; rewrite it */
-		if (dev->rev == OMAP_I2C_REV_ON_2430) {
+        	omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, SYSC_SOFTRESET_MASK);
+        	/* For some reason we need to set the EN bit before the
+        	 * reset done bit gets set. */
+        	timeout = jiffies + OMAP_I2C_TIMEOUT;
+        	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
+        	while (!(omap_i2c_read_reg(dev, OMAP_I2C_SYSS_REG) &
+        			SYSS_RESETDONE_MASK)) {
+        		if (time_after(jiffies, timeout)) {
+        			dev_warn(dev->dev, "timeout waiting "
+        					"for controller reset\n");
+        			return -ETIMEDOUT;
+        		}
+        		msleep(1);
+        	}
 
-			omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
-					   SYSC_AUTOIDLE_MASK);
 
-		} else if (dev->rev >= OMAP_I2C_REV_ON_3430) {
-			dev->syscstate = SYSC_AUTOIDLE_MASK;
-			dev->syscstate |= SYSC_ENAWAKEUP_MASK;
-			dev->syscstate |= (SYSC_IDLEMODE_SMART <<
-			      __ffs(SYSC_SIDLEMODE_MASK));
-			dev->syscstate |= (SYSC_CLOCKACTIVITY_FCLK <<
-			      __ffs(SYSC_CLOCKACTIVITY_MASK));
+        	/* SYSC register is cleared by the reset; rewrite it */
+        	if (dev->rev == OMAP_I2C_REV_ON_2430) {
 
-			omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
-							dev->syscstate);
-			/*
-			 * Enabling all wakup sources to stop I2C freezing on
-			 * WFI instruction.
-			 * REVISIT: Some wkup sources might not be needed.
-			 */
-			dev->westate = OMAP_I2C_WE_ALL;
-			if (dev->rev < OMAP_I2C_REV_ON_4430)
-				omap_i2c_write_reg(dev, OMAP_I2C_WE_REG,
-								dev->westate);
-		}
-	}
-	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
+        		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
+        				SYSC_AUTOIDLE_MASK);
 
-	if (cpu_class_is_omap1()) {
-		/*
-		 * The I2C functional clock is the armxor_ck, so there's
-		 * no need to get "armxor_ck" separately.  Now, if OMAP2420
-		 * always returns 12MHz for the functional clock, we can
-		 * do this bit unconditionally.
-		 */
-		fclk = clk_get(dev->dev, "fck");
-		fclk_rate = clk_get_rate(fclk);
-		clk_put(fclk);
+        	} else if (dev->rev >= OMAP_I2C_REV_ON_3430) {
+        		dev->syscstate = SYSC_AUTOIDLE_MASK;
+        		dev->syscstate |= SYSC_ENAWAKEUP_MASK;
+        		dev->syscstate |= (SYSC_IDLEMODE_SMART <<
+        				__ffs(SYSC_SIDLEMODE_MASK));
+        		dev->syscstate |= (SYSC_CLOCKACTIVITY_FCLK <<
+        				__ffs(SYSC_CLOCKACTIVITY_MASK));
 
-		/* TRM for 5912 says the I2C clock must be prescaled to be
-		 * between 7 - 12 MHz. The XOR input clock is typically
-		 * 12, 13 or 19.2 MHz. So we should have code that produces:
-		 *
-		 * XOR MHz	Divider		Prescaler
-		 * 12		1		0
-		 * 13		2		1
-		 * 19.2		2		1
-		 */
-		if (fclk_rate > 12000000)
-			psc = fclk_rate / 12000000;
-	}
+        		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
+        				dev->syscstate);
+        		/*
+        		 * Enabling all wakup sources to stop I2C freezing on
+        		 * WFI instruction.
+        		 * REVISIT: Some wkup sources might not be needed.
+        		 */
+        		dev->westate = OMAP_I2C_WE_ALL;
+        		if (dev->rev < OMAP_I2C_REV_ON_4430)
+        			omap_i2c_write_reg(dev, OMAP_I2C_WE_REG,
+        					dev->westate);
+        	}
+        }
+        omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
 
-	if (!(cpu_class_is_omap1() || cpu_is_omap2420())) {
+        if (cpu_class_is_omap1()) {
+        	/*
+        	 * The I2C functional clock is the armxor_ck, so there's
+        	 * no need to get "armxor_ck" separately.  Now, if OMAP2420
+        	 * always returns 12MHz for the functional clock, we can
+        	 * do this bit unconditionally.
+        	 */
+        	fclk = clk_get(dev->dev, "fck");
+        	fclk_rate = clk_get_rate(fclk);
+        	clk_put(fclk);
 
-		/*
-		 * HSI2C controller internal clk rate should be 19.2 Mhz for
-		 * HS and for all modes on 2430. On 34xx we can use lower rate
-		 * to get longer filter period for better noise suppression.
-		 * The filter is iclk (fclk for HS) period.
-		 */
-		if (dev->speed > 400 || cpu_is_omap2430())
-			internal_clk = 19200;
-		else if (dev->speed > 100)
-			internal_clk = 9600;
-		else
-			internal_clk = 4000;
-		fclk = clk_get(dev->dev, "fck");
-		fclk_rate = clk_get_rate(fclk) / 1000;
-		clk_put(fclk);
+        	/* TRM for 5912 says the I2C clock must be prescaled to be
+        	 * between 7 - 12 MHz. The XOR input clock is typically
+        	 * 12, 13 or 19.2 MHz. So we should have code that produces:
+        	 *
+        	 * XOR MHz	Divider		Prescaler
+        	 * 12		1		0
+        	 * 13		2		1
+        	 * 19.2		2		1
+        	 */
+        	if (fclk_rate > 12000000)
+        		psc = fclk_rate / 12000000;
+        }
 
-		/* Compute prescaler divisor */
-		psc = fclk_rate / internal_clk;
-		psc = psc - 1;
+        if (!(cpu_class_is_omap1() || cpu_is_omap2420())) {
 
-		/* If configured for High Speed */
-		if (dev->speed > 400) {
-			unsigned long scl;
+        	/*
+        	 * HSI2C controller internal clk rate should be 19.2 Mhz for
+        	 * HS and for all modes on 2430. On 34xx we can use lower rate
+        	 * to get longer filter period for better noise suppression.
+        	 * The filter is iclk (fclk for HS) period.
+        	 */
+        	if (dev->speed > 400 || cpu_is_omap2430())
+        		internal_clk = 19200;
+        	else if (dev->speed > 100)
+        		internal_clk = 9600;
+        	else
+        		internal_clk = 4000;
+        	fclk = clk_get(dev->dev, "fck");
+        	fclk_rate = clk_get_rate(fclk) / 1000;
+        	clk_put(fclk);
 
-			/* For first phase of HS mode */
-			scl = internal_clk / 400;
-			fsscll = scl - (scl / 3) - 7;
-			fssclh = (scl / 3) - 5;
+        	/* Compute prescaler divisor */
+        	psc = fclk_rate / internal_clk;
+        	psc = psc - 1;
 
-			/* For second phase of HS mode */
-			scl = fclk_rate / dev->speed;
-			hsscll = scl - (scl / 3) - 7;
-			hssclh = (scl / 3) - 5;
-		} else if (dev->speed > 100) {
-			unsigned long scl;
+        	/* If configured for High Speed */
+        	if (dev->speed > 400) {
+        		unsigned long scl;
 
-			/* Fast mode */
-			scl = internal_clk / dev->speed;
-			fsscll = scl - (scl / 3) - 7;
-			fssclh = (scl / 3) - 5;
-		} else {
-			/* Standard mode */
-			fsscll = internal_clk / (dev->speed * 2) - 7;
-			fssclh = internal_clk / (dev->speed * 2) - 5;
-		}
-		scll = (hsscll << OMAP_I2C_SCLL_HSSCLL) | fsscll;
-		sclh = (hssclh << OMAP_I2C_SCLH_HSSCLH) | fssclh;
-	} else {
-		/* Program desired operating rate */
-		fclk_rate /= (psc + 1) * 1000;
-		if (psc > 2)
-			psc = 2;
-		scll = fclk_rate / (dev->speed * 2) - 7 + psc;
-		sclh = fclk_rate / (dev->speed * 2) - 7 + psc;
-	}
+        		/* For first phase of HS mode */
+        		scl = internal_clk / 400;
+        		fsscll = scl - (scl / 3) - 7;
+        		fssclh = (scl / 3) - 5;
 
-	/* Setup clock prescaler to obtain approx 12MHz I2C module clock: */
-	omap_i2c_write_reg(dev, OMAP_I2C_PSC_REG, psc);
+        		/* For second phase of HS mode */
+        		scl = fclk_rate / dev->speed;
+        		hsscll = scl - (scl / 3) - 7;
+        		hssclh = (scl / 3) - 5;
+        	} else if (dev->speed > 100) {
+        		unsigned long scl;
 
-	/* SCL low and high time values */
-	omap_i2c_write_reg(dev, OMAP_I2C_SCLL_REG, scll);
-	omap_i2c_write_reg(dev, OMAP_I2C_SCLH_REG, sclh);
+        		/* Fast mode */
+        		scl = internal_clk / dev->speed;
+        		fsscll = scl - (scl / 3) - 7;
+        		fssclh = (scl / 3) - 5;
+        	} else {
+        		/* Standard mode */
+        		fsscll = internal_clk / (dev->speed * 2) - 7;
+        		fssclh = internal_clk / (dev->speed * 2) - 5;
+        	}
+        	scll = (hsscll << OMAP_I2C_SCLL_HSSCLL) | fsscll;
+        	sclh = (hssclh << OMAP_I2C_SCLH_HSSCLH) | fssclh;
+        } else {
+        	/* Program desired operating rate */
+        	fclk_rate /= (psc + 1) * 1000;
+        	if (psc > 2)
+        		psc = 2;
+        	scll = fclk_rate / (dev->speed * 2) - 7 + psc;
+        	sclh = fclk_rate / (dev->speed * 2) - 7 + psc;
+        }
 
-	if (dev->fifo_size) {
-		/* Note: setup required fifo size - 1. RTRSH and XTRSH */
-		buf = (dev->fifo_size - 1) << 8 | OMAP_I2C_BUF_RXFIF_CLR |
-			(dev->fifo_size - 1) | OMAP_I2C_BUF_TXFIF_CLR;
-		omap_i2c_write_reg(dev, OMAP_I2C_BUF_REG, buf);
-	}
+        /* Setup clock prescaler to obtain approx 12MHz I2C module clock: */
+        omap_i2c_write_reg(dev, OMAP_I2C_PSC_REG, psc);
 
-	/* Take the I2C module out of reset: */
-	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
+        /* SCL low and high time values */
+        omap_i2c_write_reg(dev, OMAP_I2C_SCLL_REG, scll);
+        omap_i2c_write_reg(dev, OMAP_I2C_SCLH_REG, sclh);
 
-	dev->errata = 0;
+        if (dev->fifo_size) {
+        	/* Note: setup required fifo size - 1. RTRSH and XTRSH */
+        	buf = (dev->fifo_size - 1) << 8 | OMAP_I2C_BUF_RXFIF_CLR |
+        			(dev->fifo_size - 1) | OMAP_I2C_BUF_TXFIF_CLR;
+        	omap_i2c_write_reg(dev, OMAP_I2C_BUF_REG, buf);
+        }
 
-	if (cpu_is_omap2430() || cpu_is_omap34xx())
-		dev->errata |= I2C_OMAP_ERRATA_I207;
+        /* Take the I2C module out of reset: */
+        omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
 
-	/* Enable interrupts */
-	dev->iestate = (OMAP_I2C_IE_XRDY | OMAP_I2C_IE_RRDY |
-			OMAP_I2C_IE_ARDY | OMAP_I2C_IE_NACK |
-			OMAP_I2C_IE_AL)  | ((dev->fifo_size) ?
-				(OMAP_I2C_IE_RDR | OMAP_I2C_IE_XDR) : 0);
-	omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, dev->iestate);
-	if (cpu_is_omap34xx()) {
-		dev->pscstate = psc;
-		dev->scllstate = scll;
-		dev->sclhstate = sclh;
-		dev->bufstate = buf;
-	}
-	return 0;
+        dev->errata = 0;
+
+        if (cpu_is_omap2430() || cpu_is_omap34xx())
+        	dev->errata |= I2C_OMAP_ERRATA_I207;
+
+        /* Enable interrupts */
+        dev->iestate = (OMAP_I2C_IE_XRDY | OMAP_I2C_IE_RRDY |
+        		OMAP_I2C_IE_ARDY | OMAP_I2C_IE_NACK |
+        		OMAP_I2C_IE_AL)  | ((dev->fifo_size) ?
+        				(OMAP_I2C_IE_RDR | OMAP_I2C_IE_XDR) : 0);
+        omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, dev->iestate);
+        if (cpu_is_omap34xx()) {
+        	dev->pscstate = psc;
+        	dev->scllstate = scll;
+        	dev->sclhstate = sclh;
+        	dev->bufstate = buf;
+        }
+        return 0;
 }
 
 /*

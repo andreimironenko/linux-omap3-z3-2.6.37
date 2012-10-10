@@ -25,6 +25,8 @@
 #include <plat/nand.h>
 #include <plat/elm.h>
 
+#include <asm/mach-types.h>
+
 #define	DRIVER_NAME	"omap2-nand"
 #define	OMAP_NAND_TIMEOUT_MS	5000
 
@@ -1130,12 +1132,12 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	info->mtd.priv		= &info->nand;
 	info->mtd.name		= dev_name(&pdev->dev);
 	info->mtd.owner		= THIS_MODULE;
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 	pdata->ecc_opt		= OMAP_ECC_BCH8_CODE_HW;
 #endif
 	info->ecc_opt		= pdata->ecc_opt;
 
-#if !defined(CONFIG_MACH_Z3_DM816X_MOD) || !defined(CONFIG_MACH_Z3_DM814X_MOD)
+#if !machine_is_z3_816x_mod() && !machine_is_z3_814x_mod()
 	info->nand.options	= pdata->devsize;
 	info->nand.options	|= NAND_SKIP_BBTSCAN;
 #else
