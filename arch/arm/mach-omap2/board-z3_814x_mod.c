@@ -981,8 +981,8 @@ static void __init ti8148_evm_map_io(void)
 	ti81xx_map_common_io();
 }
 
-MACHINE_START(TI8148EVM, "ti8148evm")
-	/* Maintainer: Texas Instruments */
+MACHINE_START(Z3_814X_MOD, "z3_814x_mod")
+	/* Maintainer: Z3 Technology */
 	.boot_params	= 0x80000100,
 	.map_io		= ti8148_evm_map_io,
 	.reserve         = ti81xx_reserve,

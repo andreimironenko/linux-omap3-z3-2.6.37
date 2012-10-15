@@ -258,7 +258,7 @@ obj-$(CONFIG_MACH_TI8148EVM)		+= board-ti8148evm.o \
 					   hsmmc.o \
 					   board-flash.o
 
-obj-$(CONFIG_MACH_Z3_814X_MOD)    += board-ti8148z3.o \
+obj-$(CONFIG_MACH_Z3_814X_MOD)    += board-z3_814x_mod.o \
                        hsmmc.o \
                        board-flash.o
  
