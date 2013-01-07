@@ -637,47 +637,37 @@ static struct mtd_partition ti814x_evm_norflash_partitions[] = {
 
 static struct mtd_partition ti814x_nand_partitions[] = {
 		/* All the partition sizes are listed in terms of NAND block size */
-		{
-				.name           = "U-Boot-min",
-				.offset         = 0,    /* Offset = 0x0 */
-				.size           = 4 * SZ_128K,
-				.mask_flags     = MTD_WRITEABLE,        /* force read-only */
-		},
-		{
-				.name           = "U-Boot",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x80000 */
-				.size           = 10 * SZ_128K,
-		},
-		{
-				.name           = "U-Boot-min Copy",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x1c0000 */
-				.size           = 4 * SZ_128K,
-		},
-		{
-				.name           = "U-Boot Env Copy",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x240000 */
-				.size           = 1 * SZ_128K,
-		},
-		{
-				.name           = "U-Boot Env",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x260000 */
-				.size           = 1 * SZ_128K,
-		},
-		{
-				.name           = "Kernel",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x280000 */
-				.size           = 34 * SZ_128K,
-		},
-		{
-				.name           = "File System",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x6C0000 */
-				.size           = 1601 * SZ_128K,
-		},
-		{
-				.name           = "Reserved",
-				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0xCEE0000 */
-				.size           = MTDPART_SIZ_FULL,
-		},
+        {
+		.name           = "U-Boot-min",
+		.offset         = 0,    /* Offset = 0x0 */
+		.size           = SZ_128K,
+	},
+	{
+		.name           = "U-Boot",
+		.offset         = MTDPART_OFS_APPEND,/* Offset = 0x20000 */
+		.size           = 18 * SZ_128K,
+	},
+	{
+		.name           = "U-Boot Env",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x260000 */
+		.size           = 1 * SZ_128K,
+	},
+	{
+		.name           = "Kernel",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x280000 */
+		.size           = 34 * SZ_128K,
+	},
+	{
+		.name           = "File System",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x6C0000 */
+		.size           = 1601 * SZ_128K,
+	},
+	{
+		.name           = "Reserved",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0xCEE0000 */
+		.size           = MTDPART_SIZ_FULL,
+	},
+
 };
 
 /* SPI fLash information */
