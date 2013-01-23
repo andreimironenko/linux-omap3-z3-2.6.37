@@ -79,3 +79,5 @@ GTAGS
 *~
 \#*#
 rootfs
+nandupdate
+scripts/genksyms/Module.symvers

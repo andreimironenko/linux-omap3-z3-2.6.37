@@ -639,29 +639,29 @@ static struct mtd_partition ti814x_nand_partitions[] =
 {
 		/* All the partition sizes are listed in terms of NAND block size */
 		{
-				.name           = "U-Boot-min",
+				.name           = "min",
 				.offset         = 0,                  /* Offset = 0x0 */
 				.size           = SZ_128K,
 		},
 		{
-				.name           = "U-Boot",
+				.name           = "uboot",
 				.offset         = MTDPART_OFS_APPEND,/* Offset = 0x20000 */
-				.size           = 15 * SZ_128K,      /*	Last block = 0x1E0000*/
+				.size           = 15 * SZ_128K,      /*	Size   = 0x1E0000*/
 		},
 		{
-				.name           = "U-Boot Env",
+				.name           = "env",
 				.offset         = MTDPART_OFS_APPEND, /* Offset = 0x200000 */
-				.size           = 4 * SZ_128K,        /* Last block = 0x260000*/
+				.size           = 4 * SZ_128K,        /* Size   = 0x80000*/
 		},
 		{
-				.name           = "Kernel",
+				.name           = "kernel",
 				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x280000 */
-				.size           = 34 * SZ_128K,
+				.size           = 34 * SZ_128K,         /* Size =  0x440000 */
 		},
 		{
-				.name           = "File System",
+				.name           = "rootfs",
 				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x6C0000 */
-				.size           = 1601 * SZ_128K,
+				.size           = 1601 * SZ_128K,       /* Size = 0xC820000 */
 		},
 		{
 				.name           = "Reserved",
