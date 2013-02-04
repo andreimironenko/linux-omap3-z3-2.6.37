@@ -664,7 +664,7 @@ static struct mtd_partition ti814x_nand_partitions[] =
 				.size           = 1601 * SZ_128K,       /* Size = 0xC820000 */
 		},
 		{
-				.name           = "Reserved",
+				.name           = "reserved",
 				.offset         = MTDPART_OFS_APPEND,   /* Offset = 0xCEE0000 */
 				.size           = MTDPART_SIZ_FULL,
 		},
