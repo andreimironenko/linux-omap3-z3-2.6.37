@@ -81,3 +81,4 @@ GTAGS
 rootfs
 nandupdate
 scripts/genksyms/Module.symvers
+arch/arm/configs/tisdk_dm814x-z3_defconfig
