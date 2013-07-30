@@ -2450,7 +2450,14 @@ static u64 omap_sata_dmamask = DMA_BIT_MASK(32);
 /* These values are tried and tested and not expected to change.
  * Hence not using a macro to generate them.
  */
-#define TI814X_SATA_PHY_CFGRX0_VAL		0x00C7CC22
+//AM: SATA RX0 signal is inverted on Z3
+#if defined(CONFIG_MACH_Z3_814X_MOD)
+	#define TI814X_SATA_PHY_CFGRX0_VAL		0x008FCCA2
+#else
+	#define TI814X_SATA_PHY_CFGRX0_VAL		0x00C7CC22
+#endif
+
+//#define TI814X_SATA_PHY_CFGRX0_VAL		0x00C7CC22
 #define TI814X_SATA_PHY_CFGRX1_VAL		0x008E0500
 #define TI814X_SATA_PHY_CFGRX2_VAL		0x7BDEF000
 #define TI814X_SATA_PHY_CFGRX3_VAL		0x1F180B0F
